@@ -124,6 +124,16 @@ export async function runSeed(): Promise<SeedResult> {
     },
   ];
 
+  const allSkills = ["frigorifique", "matières dangereuses", "fragile", "longue distance", "express"];
+  const allZones = ["Paris", "Lyon", "Marseille", "Bordeaux", "Lille", "Toulouse", "Nantes"];
+  const pick = <T,>(arr: T[], n: number, seed: number): T[] => {
+    const out: T[] = [];
+    for (let i = 0; i < n; i++) out.push(arr[(seed + i * 3) % arr.length]);
+    return Array.from(new Set(out));
+  };
+  const phone = (i: number) =>
+    `+33 6 ${String(10 + i).padStart(2, "0")} ${String(20 + i).padStart(2, "0")} ${String(30 + i).padStart(2, "0")} ${String(40 + i).padStart(2, "0")}`;
+
   const driverDocs = [
     {
       _id: new ObjectId(),
@@ -132,6 +142,9 @@ export async function runSeed(): Promise<SeedResult> {
       role: "driver" as const,
       firstName: "Armand",
       lastName: "Dailly",
+      phone: "+33 6 00 00 00 00",
+      skills: ["frigorifique", "express"],
+      zones: ["Paris", "Lille"],
     },
     ...[
       ["Alice", "Martin"],
@@ -161,6 +174,9 @@ export async function runSeed(): Promise<SeedResult> {
       role: "driver" as const,
       firstName,
       lastName,
+      phone: phone(i),
+      skills: pick(allSkills, 1 + (i % 3), i),
+      zones: pick(allZones, 1 + (i % 2), i + 1),
     })),
   ];
 

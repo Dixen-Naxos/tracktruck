@@ -17,7 +17,6 @@ import { storesRoute } from "./routes/stores.js";
 import { itinerariesRoute } from "./routes/itineraries.js";
 import { deliveriesRoute } from "./routes/deliveries.js";
 import { seederRoute } from "./routes/seeder.js";
-import { cors } from "hono/cors";
 import { startSytadinPolling } from "./features/incidents/fetchIncidents.js";
 
 const app = new Hono<AuthEnv>()
