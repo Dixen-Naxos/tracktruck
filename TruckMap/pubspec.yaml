@@ -18,6 +18,7 @@ dependencies:
   # Map
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
+  flutter_svg: ^2.0.10+1
 
   # Location
   geolocator: ^13.0.2
@@ -32,3 +33,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/road_signs/
