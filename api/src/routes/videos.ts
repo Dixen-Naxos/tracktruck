@@ -3,9 +3,20 @@ import { validator } from "hono-openapi";
 import { z } from "zod";
 import { requireAuth, requireRole, type AuthEnv } from "../auth/middleware.js";
 import { createDashcamVideoUpload } from "../features/dashcam-videos/createUpload.js";
+import { getDashcamVideoDownloadUrl } from "../features/dashcam-videos/getDownloadUrl.js";
+import { listDashcamVideos } from "../features/dashcam-videos/listVideos.js";
 
 const uploadUrlSchema = z.object({
   timestamp: z.iso.datetime().transform((s) => new Date(s)),
+});
+
+const listQuerySchema = z.object({
+  from: z.iso.datetime().transform((s) => new Date(s)).optional(),
+  to:   z.iso.datetime().transform((s) => new Date(s)).optional(),
+});
+
+const videoIdParamSchema = z.object({
+  videoId: z.string().refine((id) => ObjectId.isValid(id), "Invalid video ID"),
 });
 
 export const videosRoute = new Hono<AuthEnv>()

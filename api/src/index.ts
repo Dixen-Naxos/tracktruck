@@ -17,6 +17,7 @@ import { itinerariesRoute } from "./routes/itineraries.js";
 import { deliveriesRoute } from "./routes/deliveries.js";
 
 const app = new Hono<AuthEnv>()
+  .use("*", cors())
   .get("/", (c) => c.text("Hello Hono!"))
   .route("/admins", adminsRoutes)
   .route("/videos", videosRoute)
@@ -60,7 +61,7 @@ async function main() {
   serve(
     {
       fetch: app.fetch,
-      port: 3000,
+      port: 3001,
     },
     (info) => {
       console.log(`Server is running on http://localhost:${info.port}`);
