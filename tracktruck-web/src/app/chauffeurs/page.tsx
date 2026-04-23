@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { Btn, Card, KeyStat, PageHeader, SearchInput, Segment } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { DriverCard, DriverList } from "@/components/chauffeurs/DriverCard";
@@ -16,6 +17,7 @@ type StatusFilter = "all" | DriverStatus;
 type SortKey = "name" | "rating" | "missions";
 
 export default function ChauffeursPage() {
+  const searchParams = useSearchParams();
   const { toast } = useApp();
   const [drivers, setDrivers] = React.useState<Driver[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -26,10 +28,25 @@ export default function ChauffeursPage() {
   const [sort, setSort] = React.useState<SortKey>("name");
   const [selected, setSelected] = React.useState<Driver | null>(null);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const lastFocusedParam = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     ApiDrivers.list().then((d) => { setDrivers(d); setLoading(false); });
   }, []);
+
+  React.useEffect(() => {
+    if (loading) return;
+    const focus = searchParams.get("focus");
+    if (!focus || focus === lastFocusedParam.current) return;
+
+    const normalized = focus.trim().toLowerCase();
+    const target = drivers.find((d) =>
+      d.id.toLowerCase() === normalized || d.matricule.toLowerCase() === normalized,
+    );
+
+    lastFocusedParam.current = focus;
+    if (target) setSelected(target);
+  }, [drivers, loading, searchParams]);
 
   const filtered = React.useMemo(() => {
     let r = drivers;
