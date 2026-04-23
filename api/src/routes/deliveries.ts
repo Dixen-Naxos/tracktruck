@@ -73,13 +73,20 @@ export const deliveriesRoute = new Hono<AuthEnv>()
   .get(
     "/",
     describeRoute({
-      summary: "List all deliveries",
+      summary: "List deliveries",
+      description:
+        "Admins get every delivery. Drivers get only the deliveries assigned to them.",
       tags: ["Deliveries"],
       responses: {
         200: { description: "List of deliveries" },
       },
     }),
+    requireAuth,
     async (c) => {
+      const user = c.get("user");
+      if (user.role === "driver") {
+        return c.json(await listDeliveries({ driverId: user._id }));
+      }
       return c.json(await listDeliveries());
     },
   )
