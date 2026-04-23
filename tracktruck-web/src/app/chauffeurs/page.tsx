@@ -7,7 +7,7 @@ import { DriverCard, DriverList } from "@/components/chauffeurs/DriverCard";
 import { DriverModal } from "@/components/chauffeurs/DriverModal";
 import { CreateDrawer } from "@/components/chauffeurs/CreateDrawer";
 import { SKILLS } from "@/lib/data";
-import { listDrivers, createDriver } from "@/lib/api";
+import { ApiDrivers } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 import type { Driver, DriverStatus } from "@/lib/types";
 
@@ -28,7 +28,7 @@ export default function ChauffeursPage() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   React.useEffect(() => {
-    listDrivers().then((d) => { setDrivers(d); setLoading(false); });
+    ApiDrivers.list().then((d) => { setDrivers(d); setLoading(false); });
   }, []);
 
   const filtered = React.useMemo(() => {
@@ -61,7 +61,7 @@ export default function ChauffeursPage() {
   }), [drivers]);
 
   const handleCreate = async (input: Omit<Driver, "id">) => {
-    const created = await createDriver(input);
+    const created = await ApiDrivers.create(input);
     setDrivers((prev) => [created, ...prev]);
     setDrawerOpen(false);
     toast(`${created.firstName} ${created.lastName} créé·e`, "success");
