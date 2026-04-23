@@ -1,5 +1,3 @@
-// Core domain types.
-
 export type DriverStatus = "en-service" | "disponible" | "repos" | "conges";
 
 export type SkillFamily = "Permis" | "Habilitation" | "Matériel" | "Opérationnel" | "Zone";

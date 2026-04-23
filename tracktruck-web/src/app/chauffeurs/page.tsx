@@ -71,7 +71,7 @@ export default function ChauffeursPage() {
     <>
       <PageHeader
         title="Chauffeurs"
-        subtitle="Référentiel, compétences et disponibilités — UC-SUP-09"
+        subtitle="Référentiel, compétences et disponibilités"
       >
         <div className="flex items-center gap-2.5">
           <Btn variant="secondary" icon={<Icon.filter size={14}/>}>Exporter</Btn>
