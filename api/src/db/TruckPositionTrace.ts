@@ -10,6 +10,6 @@ export type TruckPositionTrace = {
   timestamp: Date;
 };
 
-export const truckPositionTrace = db.collection<TruckPositionTrace>(
+export const truckPositionTraces = db.collection<TruckPositionTrace>(
   "truckPositionTraces",
 );
