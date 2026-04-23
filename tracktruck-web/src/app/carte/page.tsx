@@ -165,24 +165,31 @@ export default function CartePage() {
         </Card>
 
         <Card className="tt-carte-list-card" pad={0}>
-          <div
-            style={{ borderBottom: "1px solid var(--line)" }}
-            className="flex items-center justify-between px-4 py-3.5"
-          >
-            <span className="text-[13px] font-semibold -tracking-[0.005em]">Véhicules</span>
-            <span style={{ color: "var(--ink-3)" }} className="text-[11.5px]">
+          <div className="tt-carte-list-head">
+            <div>
+              <h3>Véhicules</h3>
+              <p>Cliquer pour suivre, double-cliquer pour ouvrir les détails.</p>
+            </div>
+            <span className="tt-carte-list-count">
               {filteredTrucks.length} / {trucks.length}
             </span>
           </div>
-          <div>
+
+          <div className="tt-carte-list-body">
             {filteredTrucks.length === 0 ? (
-              <div style={{ color: "var(--ink-3)" }} className="px-4 py-6 text-[12.5px]">
+              <div className="tt-carte-list-empty">
                 Aucun véhicule ne correspond aux filtres.
               </div>
             ) : null}
             {filteredTrucks.map((t) => {
               const next = t.nextStops[0];
               const isSelected = t.id === selectedId;
+              const eta = next
+                ? new Date(next.plannedAt).toLocaleTimeString("fr-FR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "—";
               return (
                 <button
                   key={t.id}
@@ -190,46 +197,37 @@ export default function CartePage() {
                   onClick={() => handleSelect(t.id)}
                   onDoubleClick={() => handleOpenDetails(t.id)}
                   data-selected={isSelected || undefined}
-                  className="tt-truck-row"
-                  style={{
-                    borderBottom: "1px solid var(--line)",
-                  }}
+                  className="tt-carte-vehicle-item"
                 >
-                  <StatusDot
-                    color={STATUS_COLORS[t.status]}
-                    size={8}
-                    pulse={t.status !== "arret"}
-                  />
-                  <div className="min-w-0 flex-1 text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[12.5px] font-semibold">{t.plate}</span>
-                      <span style={{ color: "var(--ink-3)" }} className="text-[11.5px]">
-                        · {t.driverName}
-                      </span>
+                  <div className="tt-carte-vehicle-item__top">
+                    <div className="tt-carte-vehicle-item__plate">
+                      <StatusDot
+                        color={STATUS_COLORS[t.status]}
+                        size={8}
+                        pulse={t.status !== "arret"}
+                      />
+                      <span>{t.plate}</span>
                     </div>
-                    <div
-                      style={{ color: "var(--ink-3)" }}
-                      className="mt-px truncate text-[12px]"
+                    <span
+                      className="tt-carte-vehicle-item__status"
+                      style={{
+                        color: STATUS_COLORS[t.status],
+                        background: `color-mix(in oklab, ${STATUS_COLORS[t.status]} 14%, transparent)`,
+                      }}
                     >
                       {STATUS_LABELS[t.status]}
-                      {next ? ` → ${next.name}` : ""}
-                    </div>
+                    </span>
                   </div>
-                  <div
-                    style={{ color: "var(--ink-2)" }}
-                    className="text-right font-mono text-[12px]"
-                  >
-                    <div>
-                      {next
-                        ? new Date(next.plannedAt).toLocaleTimeString("fr-FR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "—"}
-                    </div>
-                    <div style={{ color: "var(--ink-4)" }} className="text-[11px]">
-                      {t.load}%
-                    </div>
+
+                  <div className="tt-carte-vehicle-item__driver">{t.driverName}</div>
+
+                  <div className="tt-carte-vehicle-item__route">
+                    {next ? `Prochain arrêt: ${next.name}` : "Aucun arrêt restant"}
+                  </div>
+
+                  <div className="tt-carte-vehicle-item__foot">
+                    <span>ETA {eta}</span>
+                    <span>Charge {t.load}%</span>
                   </div>
                 </button>
               );
