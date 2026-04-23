@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import { dashcamVideos } from "../../db/DashcamVideo.js";
 import { dashcamBucket } from "../../storage/bucket.js";
+import { HTTPException } from "hono/http-exception";
 
 const UPLOAD_URL_EXPIRY_MS = 15 * 60 * 1000;
 const UPLOAD_CONTENT_TYPE = "video/mp4";
