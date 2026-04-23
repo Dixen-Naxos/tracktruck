@@ -5,12 +5,22 @@ import { z } from "zod";
 import { requireAuth, requireRole, type AuthEnv } from "../auth/middleware.js";
 import { createDelivery } from "../features/deliveries/createDelivery.js";
 import { listDeliveries } from "../features/deliveries/listDeliveries.js";
+import { getDeliveryFuelConsumption } from "../features/deliveries/getFuelConsumption.js";
+import { getDeliveryTripCost } from "../features/deliveries/getTripCost.js";
 import { computeItinerary } from "../features/itineraries/computeItinerary.js";
 
 const objectIdSchema = z
   .string()
   .refine((s) => ObjectId.isValid(s), "Invalid ID")
   .transform((s) => new ObjectId(s));
+
+const deliveryIdParamSchema = z.object({
+  deliveryId: objectIdSchema,
+});
+
+const tripCostQuerySchema = z.object({
+  pricePerLiter: z.coerce.number().positive(),
+});
 
 const createDeliverySchema = z.object({
   departureWarehouseId: objectIdSchema,
@@ -79,5 +89,44 @@ export const deliveriesRoute = new Hono<AuthEnv>()
     }),
     async (c) => {
       return c.json(await listDeliveries());
+    },
+  )
+  .get(
+    "/:deliveryId/fuel-consumption",
+    describeRoute({
+      summary: "Get fuel consumption for a delivery",
+      description: "Returns the fuel consumption in liters based on the truck assigned to the delivery and its total distance.",
+      tags: ["Deliveries"],
+      responses: {
+        200: { description: "Fuel consumption details" },
+        404: { description: "Delivery or truck not found" },
+        422: { description: "No truck or distance assigned" },
+      },
+    }),
+    validator("param", deliveryIdParamSchema),
+    async (c) => {
+      const { deliveryId } = c.req.valid("param");
+      return c.json(await getDeliveryFuelConsumption(deliveryId));
+    },
+  )
+  .get(
+    "/:deliveryId/trip-cost",
+    describeRoute({
+      summary: "Get the fuel cost of a delivery",
+      description: "Calculates the total fuel cost based on the truck's consumption, the delivery's distance, and the current price per liter.",
+      tags: ["Deliveries"],
+      responses: {
+        200: { description: "Trip cost breakdown" },
+        400: { description: "Missing or invalid pricePerLiter" },
+        404: { description: "Delivery or truck not found" },
+        422: { description: "No truck or distance assigned" },
+      },
+    }),
+    validator("param", deliveryIdParamSchema),
+    validator("query", tripCostQuerySchema),
+    async (c) => {
+      const { deliveryId } = c.req.valid("param");
+      const { pricePerLiter } = c.req.valid("query");
+      return c.json(await getDeliveryTripCost(deliveryId, pricePerLiter));
     },
   );
