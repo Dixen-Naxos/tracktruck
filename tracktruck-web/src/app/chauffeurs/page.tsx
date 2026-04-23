@@ -5,12 +5,12 @@ import { useSearchParams } from "next/navigation";
 import { Btn, Card, KeyStat, PageHeader, SearchInput, Segment } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { DriverCard, DriverList } from "@/components/chauffeurs/DriverCard";
-import { DriverModal } from "@/components/chauffeurs/DriverModal";
 import { CreateChauffeur } from "@/components/chauffeurs/CreateChauffeur";
+import { DriverDialog } from "@/components/chauffeurs/DriverDialog";
 import { SKILLS } from "@/lib/data";
 import { ApiDrivers } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
-import type {Driver, DriverStatus, DriverUser} from "@/lib/types";
+import type { Driver, DriverStatus, DriverUser } from "@/lib/types";
 import {useEffect} from "react";
 
 type ViewMode = "grid" | "list";
@@ -29,25 +29,10 @@ export default function ChauffeursPage() {
   const [sort, setSort] = React.useState<SortKey>("name");
   const [selected, setSelected] = React.useState<Driver | null>(null);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const lastFocusedParam = React.useRef<string | null>(null);
 
 useEffect(() => {
     ApiDrivers.list().then((d) => { setDrivers(d); setLoading(false); });
   }, []);
-
-  React.useEffect(() => {
-    if (loading) return;
-    const focus = searchParams.get("focus");
-    if (!focus || focus === lastFocusedParam.current) return;
-
-    const normalized = focus.trim().toLowerCase();
-    const target = drivers.find((d) =>
-      d.id.toLowerCase() === normalized || d.matricule.toLowerCase() === normalized,
-    );
-
-    lastFocusedParam.current = focus;
-    if (target) React.startTransition(() => setSelected(target));
-  }, [drivers, loading, searchParams]);
 
   const filtered = React.useMemo(() => {
     let r = drivers;
@@ -174,13 +159,7 @@ useEffect(() => {
         <DriverList drivers={filtered} onOpen={setSelected}/>
       )}
 
-      {selected && (
-        <DriverModal
-          driver={selected}
-          onClose={() => setSelected(null)}
-          onToast={toast}
-        />
-      )}
+      {selected && <DriverDialog driver={selected} onClose={() => setSelected(null)} />}
       {drawerOpen && <CreateChauffeur onClose={() => setDrawerOpen(false)} onCreate={handleCreate} />}
     </>
   );
