@@ -23,6 +23,7 @@ export default function CartePage() {
 
   const selectedTruck =
     trucks.find((t) => t.id === selectedId) ?? null;
+  const detailFocus = drawerOpen && !!selectedTruck;
 
   const handleSelect = React.useCallback((id: string | null) => {
     setSelectedId(id);
@@ -34,12 +35,12 @@ export default function CartePage() {
   }, []);
 
   return (
-    <>
+    <div className={`tt-carte-page ${detailFocus ? "tt-carte-page--focus" : ""}`}>
       <PageHeader title="Carte temps réel" subtitle="Position en direct des camions">
         <Btn variant="secondary" icon={<Icon.filter size={14}/>}>Filtres</Btn>
       </PageHeader>
 
-      <Card style={{ marginTop: 24, padding: "20px 24px" }} pad={0}>
+      <Card className="tt-carte-kpis" style={{ marginTop: 24, padding: "20px 24px" }} pad={0}>
         <div className="grid grid-cols-4 gap-6">
           <KeyStat label="Véhicules en route" value={onTheRoad} tone="good"/>
           <KeyStat label="À l'arrêt" value={stopped} tone={stopped > 0 ? "bad" : undefined}/>
@@ -48,9 +49,9 @@ export default function CartePage() {
         </div>
       </Card>
 
-      <div className="mt-5 grid grid-cols-[1fr_320px] gap-4">
-        <Card pad={0} style={{ overflow: "hidden" }}>
-          <div className="tt-map-wrap" style={{ height: 560 }}>
+      <div className="tt-carte-layout">
+        <Card className="tt-carte-map-card" pad={0} style={{ overflow: "hidden" }}>
+          <div className={`tt-map-wrap tt-carte-map-wrap ${detailFocus ? "tt-carte-map-wrap--focus" : ""}`}>
             <Map
               trucks={trucks}
               selectedTruckId={selectedId}
@@ -60,7 +61,7 @@ export default function CartePage() {
           </div>
         </Card>
 
-        <Card pad={0}>
+        <Card className="tt-carte-list-card" pad={0}>
           <div
             style={{ borderBottom: "1px solid var(--line)" }}
             className="flex items-center justify-between px-4 py-3.5"
@@ -132,8 +133,9 @@ export default function CartePage() {
       <TruckDetailDrawer
         truck={selectedTruck}
         open={drawerOpen}
+        layout="split"
         onClose={() => setDrawerOpen(false)}
       />
-    </>
+    </div>
   );
 }

@@ -12,6 +12,7 @@ import { useRouteRemaining } from "@/hooks/use-route-remaining";
 interface Props {
   truck: TruckLive | null;
   open: boolean;
+  layout?: "overlay" | "split";
   onClose: () => void;
 }
 
@@ -79,16 +80,23 @@ const KIND_LABEL: Record<RouteStop["kind"], string> = {
   delivery: "Livraison",
 };
 
-export function TruckDetailDrawer({ truck, open, onClose }: Props) {
+export function TruckDetailDrawer({
+  truck,
+  open,
+  layout = "overlay",
+  onClose,
+}: Props) {
+  const isOverlay = layout === "overlay";
+
   // Lock body scroll when drawer is open (lightweight; no portal needed).
   React.useEffect(() => {
-    if (!open) return;
+    if (!open || !isOverlay) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open]);
+  }, [open, isOverlay]);
 
   // ESC closes
   React.useEffect(() => {
@@ -109,14 +117,16 @@ export function TruckDetailDrawer({ truck, open, onClose }: Props) {
 
   return (
     <>
-      <div
-        className="tt-drawer__scrim"
-        data-open={open || undefined}
-        onClick={onClose}
-        aria-hidden
-      />
+      {isOverlay ? (
+        <div
+          className="tt-drawer__scrim"
+          data-open={open || undefined}
+          onClick={onClose}
+          aria-hidden
+        />
+      ) : null}
       <aside
-        className="tt-drawer"
+        className={`tt-drawer ${!isOverlay ? "tt-drawer--split" : ""}`}
         data-open={open || undefined}
         role="dialog"
         aria-label={`Détails du camion ${truck.plate}`}
