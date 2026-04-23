@@ -28,6 +28,8 @@ export type Delivery = {
   storeArrivals: StoreArrival[];
   status: DeliveryStatus;
   itinerary?: IntineraryStep[];
+  truckId?: ObjectId;
+  distanceKm?: number;
 };
 
 export const deliveries = db.collection<Delivery>("deliveries");
