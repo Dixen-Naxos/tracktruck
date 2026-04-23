@@ -14,6 +14,11 @@ export type IntineraryStep = {
   end: GpsPosition;
 };
 
+export type DeliveryStore = {
+  storeId: ObjectId;
+  packageQuantity: number;
+};
+
 export type Delivery = {
   _id: ObjectId;
   departureWarehouseId: ObjectId;
