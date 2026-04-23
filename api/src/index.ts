@@ -16,6 +16,7 @@ import { storesRoute } from "./routes/stores.js";
 import { itinerariesRoute } from "./routes/itineraries.js";
 import { deliveriesRoute } from "./routes/deliveries.js";
 import { cors } from "hono/cors";
+import { startSytadinPolling } from "./features/incidents/fetchIncidents.js";
 
 const app = new Hono<AuthEnv>()
   .use("*", cors())
@@ -59,7 +60,11 @@ async function main() {
   await connect();
   await ensureUserIndexes();
 
-  serve(
+  startSytadinPolling().catch((error) => {
+    console.error("Error starting Sytadin polling:", error);
+  });
+
+  await serve(
     {
       fetch: app.fetch,
       port: 3000,

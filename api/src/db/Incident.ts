@@ -20,6 +20,13 @@ export type VehicleBreakdownIncident = IncidentBase & {
   deliveryId: ObjectId;
 };
 
-export type Incident = DeliveryDelayedIncident | VehicleBreakdownIncident;
+export type ExternalIncident = IncidentBase & {
+  type: "external";
+};
+
+export type Incident =
+  | DeliveryDelayedIncident
+  | VehicleBreakdownIncident
+  | ExternalIncident;
 
 export const incidents = db.collection<Incident>("incidents");
