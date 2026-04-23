@@ -2,9 +2,8 @@
 // so the UI doesn't need to change.
 
 import type { DashcamVideo, Driver, DriverUser } from "./types";
-import { DRIVERS } from "./data";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const BASE_URL = process.env.NEXT_PUBLIC_API ?? "";
 
 type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 type TokenGetter = () => Promise<string | null>;
@@ -34,13 +33,56 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
 
 // ─── ApiDrivers ───────────────────────────────────────────────────────────────
 
+type ApiDriver = {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  skills?: string[];
+  zones?: string[];
+  matricule?: string;
+  status?: Driver["status"];
+  rating?: number;
+  missions?: number;
+  vehicle?: string;
+};
+
+function toDriver(raw: ApiDriver): Driver {
+  const tone = (raw.firstName.charCodeAt(0) * 37 + raw.lastName.charCodeAt(0) * 17) % 360;
+  return {
+    id:           raw._id,
+    matricule:    raw.matricule ?? "—",
+    firstName:    raw.firstName,
+    lastName:     raw.lastName,
+    status:       raw.status ?? "disponible",
+    rating:       raw.rating ?? 0,
+    missions:     raw.missions ?? 0,
+    since:        "—",
+    phone:        raw.phone ?? "—",
+    email:        raw.email,
+    vehicle:      raw.vehicle ?? "—",
+    license:      "",
+    expiry:       "",
+    skills:       raw.skills ?? [],
+    zones:        raw.zones ?? [],
+    availability: { mon: 1, tue: 1, wed: 1, thu: 1, fri: 1, sat: 0, sun: 0 },
+    nextLeave:    "—",
+    onTimeRate:   0,
+    incidents30d: 0,
+    avatarTone:   tone,
+    initials:     (raw.firstName[0] + raw.lastName[0]).toUpperCase(),
+    recent:       [],
+  };
+}
+
 export const ApiDrivers = {
-  list:       ()                                    => request<Driver[]>("GET",    "/api/drivers"),
-  get:        (id: string)                          => request<Driver> ("GET",    `/api/drivers/${id}`),
-  create:     (input: Omit<Driver, "id">)           => request<Driver> ("POST",   "/api/drivers", input),
-  createUser: (input: DriverUser)                   => request<Driver> ("POST",   "/drivers", input),
-  update:     (id: string, patch: Partial<Driver>)  => request<Driver> ("PATCH",  `/api/drivers/${id}`, patch),
-  remove:     (id: string)                          => request<void>   ("DELETE", `/api/drivers/${id}`),
+  list:       async ()                                   => (await request<ApiDriver[]>("GET",   "/drivers")).map(toDriver),
+  get:        (id: string)                               => request<Driver>("GET",    `/api/drivers/${id}`),
+  create:     (input: Omit<Driver, "id">)                => request<Driver>("POST",   "/api/drivers", input),
+  createUser: async (input: DriverUser)                  => toDriver(await request<ApiDriver>("POST", "/drivers", input)),
+  update:     (id: string, patch: Partial<Driver>)       => request<Driver>("PATCH",  `/api/drivers/${id}`, patch),
+  remove:     (id: string)                               => request<void> ("DELETE",  `/api/drivers/${id}`),
 };
 
 // ─── ApiOrders ────────────────────────────────────────────────────────────────
@@ -75,7 +117,7 @@ export const ApiDrivers = {
 
 const _devDelay = (ms = 250) => new Promise((r) => setTimeout(r, ms));
 
-let _driversStore: Driver[] = [...DRIVERS];
+let _driversStore: Driver[] = [];
 
 function _devStub<T>(method: Method, path: string, body?: unknown): T {
   if (path === "/drivers" && method === "POST") {
@@ -145,7 +187,7 @@ function _devStub<T>(method: Method, path: string, body?: unknown): T {
   throw new Error(`Dev stub: route not handled — ${method} ${path}`);
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+const API_BASE = process.env.NEXT_PUBLIC_API ?? "http://localhost:3000";
 
 export async function listDashcamVideos(from?: string, to?: string): Promise<DashcamVideo[]> {
   const params = new URLSearchParams();
