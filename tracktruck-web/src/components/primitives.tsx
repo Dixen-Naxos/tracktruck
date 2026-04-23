@@ -214,9 +214,9 @@ export function SearchInput({
   return (
     <label
       style={{ background: "var(--surface-2)", border: "1px solid var(--line)", color: "var(--ink-3)" }}
-      className="inline-flex h-9 w-full items-center gap-2 rounded-[10px] px-3"
+      className="inline-flex h-18 w-full items-center gap-2 rounded-[10px] px-3"
     >
-      <Icon.search size={16} />
+      <Icon.search size={32} />
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -224,7 +224,6 @@ export function SearchInput({
         style={{ color: "var(--ink-1)" }}
         className="w-full border-0 bg-transparent text-[13.5px] outline-none"
       />
-      <Kbd>⌘K</Kbd>
     </label>
   );
 }

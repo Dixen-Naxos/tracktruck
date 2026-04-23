@@ -92,8 +92,7 @@ export interface DashcamVideo {
   id: string;
   assetPath: string;
   timestamp: string;
-  driverId: string;
-  driverName: string;
+  driver: { id: string; firstName: string; lastName: string } | null;
   truckId?: string;
   deliveryId?: string;
 }
