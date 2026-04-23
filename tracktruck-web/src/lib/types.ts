@@ -69,6 +69,19 @@ export interface StatusMeta {
   bg: string;
 }
 
+export interface UserBase {
+  email: string;
+}
+
+export type DriverUser = UserBase & {
+  role: "driver";
+  firstName: string;
+  lastName: string;
+  phone: string;
+  skills: string[];
+  zones: string[];
+};
+
 export type ThemeMode = "light" | "dark";
 export type MapStyle = "schematic" | "realistic";
 export type SidebarVariant = "expanded" | "compact";

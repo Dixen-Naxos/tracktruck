@@ -5,12 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { Btn, Card, KeyStat, PageHeader, SearchInput, Segment } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { DriverCard, DriverList } from "@/components/chauffeurs/DriverCard";
-import { DriverModal } from "@/components/chauffeurs/DriverModal";
-import { CreateDrawer } from "@/components/chauffeurs/CreateDrawer";
+import { CreateChauffeur } from "@/components/chauffeurs/CreateChauffeur";
+import { DriverDialog } from "@/components/chauffeurs/DriverDialog";
 import { SKILLS } from "@/lib/data";
 import { ApiDrivers } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
-import type { Driver, DriverStatus } from "@/lib/types";
+import type { Driver, DriverStatus, DriverUser } from "@/lib/types";
+import {useEffect} from "react";
 
 type ViewMode = "grid" | "list";
 type StatusFilter = "all" | DriverStatus;
@@ -28,25 +29,10 @@ export default function ChauffeursPage() {
   const [sort, setSort] = React.useState<SortKey>("name");
   const [selected, setSelected] = React.useState<Driver | null>(null);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const lastFocusedParam = React.useRef<string | null>(null);
 
-  React.useEffect(() => {
+useEffect(() => {
     ApiDrivers.list().then((d) => { setDrivers(d); setLoading(false); });
   }, []);
-
-  React.useEffect(() => {
-    if (loading) return;
-    const focus = searchParams.get("focus");
-    if (!focus || focus === lastFocusedParam.current) return;
-
-    const normalized = focus.trim().toLowerCase();
-    const target = drivers.find((d) =>
-      d.id.toLowerCase() === normalized || d.matricule.toLowerCase() === normalized,
-    );
-
-    lastFocusedParam.current = focus;
-    if (target) setSelected(target);
-  }, [drivers, loading, searchParams]);
 
   const filtered = React.useMemo(() => {
     let r = drivers;
@@ -77,8 +63,8 @@ export default function ChauffeursPage() {
     avgRating: drivers.length ? drivers.reduce((s, d) => s + d.rating, 0) / drivers.length : 0,
   }), [drivers]);
 
-  const handleCreate = async (input: Omit<Driver, "id">) => {
-    const created = await ApiDrivers.create(input);
+  const handleCreate = async (input: DriverUser) => {
+    const created = await ApiDrivers.createUser(input);
     setDrivers((prev) => [created, ...prev]);
     setDrawerOpen(false);
     toast(`${created.firstName} ${created.lastName} créé·e`, "success");
@@ -91,9 +77,8 @@ export default function ChauffeursPage() {
         subtitle="Référentiel, compétences et disponibilités"
       >
         <div className="flex items-center gap-2.5">
-          <Btn variant="secondary" icon={<Icon.filter size={14}/>}>Exporter</Btn>
           <Btn variant="primary" icon={<Icon.plus size={14}/>} onClick={() => setDrawerOpen(true)}>
-            Nouveau chauffeur
+            Crée un chauffeur
           </Btn>
         </div>
       </PageHeader>
@@ -174,14 +159,8 @@ export default function ChauffeursPage() {
         <DriverList drivers={filtered} onOpen={setSelected}/>
       )}
 
-      {selected && (
-        <DriverModal
-          driver={selected}
-          onClose={() => setSelected(null)}
-          onToast={toast}
-        />
-      )}
-      {drawerOpen && <CreateDrawer onClose={() => setDrawerOpen(false)} onCreate={handleCreate}/>}
+      {selected && <DriverDialog driver={selected} onClose={() => setSelected(null)} />}
+      {drawerOpen && <CreateChauffeur onClose={() => setDrawerOpen(false)} onCreate={handleCreate} />}
     </>
   );
 }

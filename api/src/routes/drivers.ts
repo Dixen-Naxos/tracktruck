@@ -13,16 +13,28 @@ const createDriverSchema = z.object({
   email: z.email().transform((s) => s.trim().toLowerCase()),
   firstName: z.string().trim().min(1),
   lastName: z.string().trim().min(1),
+  phone: z.string().trim().min(1),
+  skills: z.array(z.string().trim().min(1)).default([]),
+  zones: z.array(z.string().trim().min(1)).default([]),
 });
 
 const updateDriverSchema = z
   .object({
     firstName: z.string().trim().min(1).optional(),
     lastName: z.string().trim().min(1).optional(),
+    phone: z.string().trim().min(1).optional(),
+    skills: z.array(z.string().trim().min(1)).optional(),
+    zones: z.array(z.string().trim().min(1)).optional(),
   })
-  .refine((v) => v.firstName !== undefined || v.lastName !== undefined, {
-    message: "At least one field must be provided",
-  });
+  .refine(
+    (v) =>
+      v.firstName !== undefined ||
+      v.lastName !== undefined ||
+      v.phone !== undefined ||
+      v.skills !== undefined ||
+      v.zones !== undefined,
+    { message: "At least one field must be provided" },
+  );
 
 export const driversRoute = new Hono<AuthEnv>()
   .use("*", requireAuth, requireRole("admin"))
