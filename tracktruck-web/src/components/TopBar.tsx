@@ -7,15 +7,16 @@ import { useApp } from "@/context/AppContext";
 
 export function TopBar() {
   const { toast } = useApp();
-  const [now, setNow] = React.useState<Date>(() => new Date());
+  const [now, setNow] = React.useState<Date | null>(null);
 
   React.useEffect(() => {
+    setNow(new Date());
     const t = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(t);
   }, []);
 
-  const time = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  const date = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  const time = now?.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) ?? "";
+  const date = now?.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) ?? "";
 
   return (
     <div style={{ color: "var(--ink-3)" }} className="mb-[26px] flex items-center gap-3.5 text-[12.5px]">

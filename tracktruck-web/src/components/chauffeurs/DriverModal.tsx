@@ -1,15 +1,22 @@
-"use client";
-
 import * as React from "react";
 import { Avatar, Btn, Hairline, KeyStat, StatusPill } from "../primitives";
 import { Icon } from "../icons";
 import { SKILLS } from "@/lib/data";
 import type { Driver, ToastKind } from "@/lib/types";
 
+const TABS = [
+  { id: "apercu",      l: "Aperçu"        },
+  { id: "competences", l: "Compétences"   },
+  { id: "planning",    l: "Disponibilités"},
+  { id: "historique",  l: "Historique"    },
+] as const;
+
+type TabId = typeof TABS[number]["id"];
+
 export function DriverModal({
   driver, onClose, onToast,
 }: { driver: Driver; onClose: () => void; onToast: (msg: string, kind?: ToastKind) => void }) {
-  const [tab, setTab] = React.useState<"apercu" | "competences" | "planning" | "historique">("apercu");
+  const [tab, setTab] = React.useState<TabId>("apercu");
   const [editing, setEditing] = React.useState(false);
 
   React.useEffect(() => {
@@ -105,12 +112,7 @@ export function DriverModal({
           </div>
 
           <div className="-mb-[19px] mt-5 flex gap-0.5">
-            {([
-              { id: "apercu", l: "Aperçu" },
-              { id: "competences", l: "Compétences" },
-              { id: "planning", l: "Disponibilités" },
-              { id: "historique", l: "Historique" },
-            ] as const).map((t) => (
+            {TABS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
@@ -211,7 +213,8 @@ function Spark({ data }: { data: number[] }) {
 }
 
 function TabApercu({ driver, editing }: { driver: Driver; editing: boolean }) {
-  const daysUntilExpiry = Math.floor((new Date(driver.expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const [now] = React.useState<number>(Date.now);
+  const daysUntilExpiry = Math.floor((new Date(driver.expiry).getTime() - now) / (1000 * 60 * 60 * 24));
   const expiryBadge: { label: string; tone: "warn" | "good" } =
     daysUntilExpiry < 90 ? { label: `Renouveler dans ${daysUntilExpiry}j`, tone: "warn" } : { label: "À jour", tone: "good" };
 
@@ -327,22 +330,24 @@ function TabCompetences({ driver, editing }: { driver: Driver; editing: boolean 
   );
 }
 
+const DAYS = [
+  { k: "mon", l: "Lun" }, { k: "tue", l: "Mar" }, { k: "wed", l: "Mer" },
+  { k: "thu", l: "Jeu" }, { k: "fri", l: "Ven" }, { k: "sat", l: "Sam" }, { k: "sun", l: "Dim" },
+] as const;
+
+const PLANNING_WEEKS: { label: string; d: (0 | 1)[] }[] = [
+  { label: "Sem. 17", d: [1,1,1,1,1,0,0] },
+  { label: "Sem. 18", d: [1,1,1,1,1,0,0] },
+  { label: "Sem. 19", d: [1,1,0,0,0,0,0] },
+  { label: "Sem. 20", d: [1,1,1,1,1,0,0] },
+];
+
 function TabPlanning({ driver }: { driver: Driver }) {
-  const days = [
-    { k: "mon", l: "Lun" }, { k: "tue", l: "Mar" }, { k: "wed", l: "Mer" },
-    { k: "thu", l: "Jeu" }, { k: "fri", l: "Ven" }, { k: "sat", l: "Sam" }, { k: "sun", l: "Dim" },
-  ] as const;
-  const weeks: { label: string; d: (0 | 1)[] }[] = [
-    { label: "Sem. 17", d: [1,1,1,1,1,0,0] },
-    { label: "Sem. 18", d: [1,1,1,1,1,0,0] },
-    { label: "Sem. 19", d: [1,1,0,0,0,0,0] },
-    { label: "Sem. 20", d: [1,1,1,1,1,0,0] },
-  ];
   return (
     <div className="grid gap-[18px]">
       <Section title="Disponibilités récurrentes">
         <div className="mt-2.5 flex gap-2">
-          {days.map((d) => {
+          {DAYS.map((d) => {
             const av = driver.availability[d.k];
             return (
               <div
@@ -368,7 +373,7 @@ function TabPlanning({ driver }: { driver: Driver }) {
 
       <Section title="Planning 4 semaines">
         <div className="mt-2.5">
-          {weeks.map((w) => (
+          {PLANNING_WEEKS.map((w) => (
             <div key={w.label} className="grid grid-cols-[70px_1fr] items-center gap-3.5 py-2">
               <div style={{ color: "var(--ink-3)" }} className="font-mono text-[12px]">{w.label}</div>
               <div className="flex gap-1.5">
