@@ -138,55 +138,57 @@ async function seed() {
   const hours = (h: number) => new Date(now + h * 3600_000);
 
   const deliveryDocs = [
-    // Planned (Paris)
+    // Planned – tournée Paris depuis Saint-Denis (optimisée : Bastille → République → Montmartre)
     {
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[0]._id,
-      truckId: truckDocs[0]._id,
-      storeIds: [
-        storeDocs[0]._id,
-        storeDocs[1]._id,
-        storeDocs[2]._id,
-      ],
+      storeIds: [storeDocs[0]._id, storeDocs[2]._id, storeDocs[1]._id],
+      totalDistanceKm: 38.4,
+      totalDurationSeconds: 5040, // ~1h24
       plannedStartAt: hours(24),
       storeArrivals: [],
       status: "planned" as const,
+      itinerary: [
+        { start: { lat: 48.917, lng: 2.36 },  end: { lat: 48.853, lng: 2.369 } }, // Saint-Denis → Bastille
+        { start: { lat: 48.853, lng: 2.369 }, end: { lat: 48.867, lng: 2.363 } }, // Bastille → République
+        { start: { lat: 48.867, lng: 2.363 }, end: { lat: 48.884, lng: 2.338 } }, // République → Montmartre
+      ],
     },
 
-    // Started (Lyon)
+    // Started – tournée Lyon depuis entrepôt Jean Jaurès
     {
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[1]._id,
-      truckId: truckDocs[1]._id,
       storeIds: [storeDocs[3]._id],
+      totalDistanceKm: 4.2,
+      totalDurationSeconds: 900, // ~15min
       plannedStartAt: hours(-2),
       actualStartAt: hours(-1.5),
       storeArrivals: [],
       status: "started" as const,
       itinerary: [
-        {
-          start: warehouseDocs[1].location,
-          end: storeDocs[3].location,
-        },
+        { start: { lat: 45.733, lng: 4.835 }, end: { lat: 45.761, lng: 4.859 } }, // Jean Jaurès → Part-Dieu
       ],
     },
 
-    // Done (Marseille)
+    // Done – tournée Marseille depuis entrepôt Mazenod
     {
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[2]._id,
-      truckId: truckDocs[2]._id,
-      storeIds: [
-        storeDocs[4]._id,
-        storeDocs[5]._id,
-      ],
+      storeIds: [storeDocs[4]._id, storeDocs[5]._id],
+      totalDistanceKm: 5.8,
+      totalDurationSeconds: 1200, // ~20min
       plannedStartAt: hours(-48),
       actualStartAt: hours(-47),
       storeArrivals: [
-        { storeId: storeDocs[4]._id, arrivedAt: hours(-46) },
-        { storeId: storeDocs[5]._id, arrivedAt: hours(-45) },
+        { storeId: storeDocs[4]._id, arrivedAt: hours(-46.5) },
+        { storeId: storeDocs[5]._id, arrivedAt: hours(-46) },
       ],
       status: "done" as const,
+      itinerary: [
+        { start: { lat: 43.302, lng: 5.37 },  end: { lat: 43.296, lng: 5.37 } },  // Mazenod → Vieux-Port
+        { start: { lat: 43.296, lng: 5.37 },  end: { lat: 43.2965, lng: 5.379 } }, // Vieux-Port → Canebière
+      ],
     },
   ];
   await deliveries.insertMany(deliveryDocs);
