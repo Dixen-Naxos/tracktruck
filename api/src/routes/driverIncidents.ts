@@ -1,10 +1,9 @@
-import { ObjectId } from "mongodb";
 import { Hono } from "hono";
 import { validator } from "hono-openapi";
 import { z } from "zod";
 import { requireAuth, requireRole, type AuthEnv } from "../auth/middleware.js";
 import { createIncident } from "../features/incidents/createIncident.js";
-import { idParamSchema, zObjectId } from "../utils/idParamSchema.js";
+import { zObjectId } from "../utils/idParamSchema.js";
 import { listIncidents } from "../features/incidents/listIncidents.js";
 
 const gpsPositionSchema = z.object({
@@ -33,7 +32,7 @@ const listIncidentsQuerySchema = z.object({
 });
 
 export const driverIncidentsRoute = new Hono<AuthEnv>()
-  .use("*", requireAuth, requireRole("driver", "admin"))
+  .use("*", requireAuth)
   .get(
     "/",
     requireRole("admin"),
@@ -43,8 +42,13 @@ export const driverIncidentsRoute = new Hono<AuthEnv>()
       return c.json(incidents);
     },
   )
-  .post("/", validator("json", createIncidentSchema), async (c) => {
-    const driver = c.get("user");
-    const incident = await createIncident(driver._id, c.req.valid("json"));
-    return c.json(incident, 201);
-  });
+  .post(
+    "/",
+    requireRole("driver"),
+    validator("json", createIncidentSchema),
+    async (c) => {
+      const driver = c.get("user");
+      const incident = await createIncident(driver._id, c.req.valid("json"));
+      return c.json(incident, 201);
+    },
+  );
