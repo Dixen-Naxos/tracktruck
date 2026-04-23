@@ -1,74 +1,139 @@
 "use client";
 
 import * as React from "react";
-import { PageHeader, Card, KeyStat, Btn, StatusDot } from "@/components/primitives";
+import { Btn, Card, KeyStat, PageHeader, StatusDot } from "@/components/primitives";
 import { Icon } from "@/components/icons";
-import { SchematicMap } from "@/components/SchematicMap";
-import { VEHICLES, DRIVERS } from "@/lib/data";
-import { useApp } from "@/context/AppContext";
+import Map from "@/components/carte/Map";
+import { TruckDetailDrawer } from "@/components/carte/TruckDetailDrawer";
+import {
+  STATUS_COLORS,
+  STATUS_LABELS,
+  TRUCKS_LIVE,
+  type TruckLive,
+} from "@/lib/trucks-live";
 
 export default function CartePage() {
-  const { tweaks } = useApp();
-  const onTheRoad = VEHICLES.filter((v) => v.status !== "arret").length;
+  const [trucks] = React.useState<TruckLive[]>(TRUCKS_LIVE);
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+
+  const onTheRoad = trucks.filter((t) => t.status !== "arret").length;
+  const stopped = trucks.length - onTheRoad;
+  const totalStops = trucks.reduce((acc, t) => acc + t.nextStops.length, 0);
+
+  const selectedTruck =
+    trucks.find((t) => t.id === selectedId) ?? null;
+
+  const handleSelect = React.useCallback((id: string | null) => {
+    setSelectedId(id);
+  }, []);
+
+  const handleOpenDetails = React.useCallback((id: string) => {
+    setSelectedId(id);
+    setDrawerOpen(true);
+  }, []);
 
   return (
     <>
-      <PageHeader title="Carte temps réel" subtitle="Flotte active — vue d'ensemble">
+      <PageHeader title="Carte temps réel" subtitle="Position en direct des camions">
         <Btn variant="secondary" icon={<Icon.filter size={14}/>}>Filtres</Btn>
       </PageHeader>
 
       <Card style={{ marginTop: 24, padding: "20px 24px" }} pad={0}>
         <div className="grid grid-cols-4 gap-6">
-          <KeyStat label="Véhicules actifs" value={onTheRoad} tone="good"/>
-          <KeyStat label="Commandes en cours" value={42}/>
-          <KeyStat label="Retards" value={1} tone="bad"/>
+          <KeyStat label="Véhicules en route" value={onTheRoad} tone="good"/>
+          <KeyStat label="À l'arrêt" value={stopped} tone={stopped > 0 ? "bad" : undefined}/>
+          <KeyStat label="Arrêts restants" value={totalStops}/>
           <KeyStat label="Incidents" value={2} tone="bad"/>
         </div>
       </Card>
 
       <div className="mt-5 grid grid-cols-[1fr_320px] gap-4">
-        <SchematicMap style={tweaks.map} height={520}/>
+        <Card pad={0} style={{ overflow: "hidden" }}>
+          <div className="tt-map-wrap" style={{ height: 560 }}>
+            <Map
+              trucks={trucks}
+              selectedTruckId={selectedId}
+              onSelectTruck={handleSelect}
+              onOpenDetails={handleOpenDetails}
+            />
+          </div>
+        </Card>
+
         <Card pad={0}>
           <div
             style={{ borderBottom: "1px solid var(--line)" }}
             className="flex items-center justify-between px-4 py-3.5"
           >
             <span className="text-[13px] font-semibold -tracking-[0.005em]">Véhicules</span>
-            <span style={{ color: "var(--ink-3)" }} className="text-[11.5px]">{VEHICLES.length} actifs</span>
+            <span style={{ color: "var(--ink-3)" }} className="text-[11.5px]">
+              {trucks.length} actifs
+            </span>
           </div>
           <div>
-            {VEHICLES.map((v) => {
-              const d = DRIVERS.find((x) => x.id === v.driverId);
-              const color =
-                v.status === "arret" ? "var(--danger)" :
-                v.status === "retour" ? "var(--ink-3)" :
-                "var(--accent)";
+            {trucks.map((t) => {
+              const next = t.nextStops[0];
+              const isSelected = t.id === selectedId;
               return (
-                <div
-                  key={v.id}
-                  style={{ borderBottom: "1px solid var(--line)" }}
-                  className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-[var(--surface-2)]"
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => handleSelect(t.id)}
+                  onDoubleClick={() => handleOpenDetails(t.id)}
+                  data-selected={isSelected || undefined}
+                  className="tt-truck-row"
+                  style={{
+                    borderBottom: "1px solid var(--line)",
+                  }}
                 >
-                  <StatusDot color={color} size={8} pulse={v.status !== "arret"}/>
-                  <div className="min-w-0 flex-1">
+                  <StatusDot
+                    color={STATUS_COLORS[t.status]}
+                    size={8}
+                    pulse={t.status !== "arret"}
+                  />
+                  <div className="min-w-0 flex-1 text-left">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[12.5px] font-semibold">{v.id}</span>
-                      <span style={{ color: "var(--ink-3)" }} className="text-[11.5px]">· {d?.firstName} {d?.lastName}</span>
+                      <span className="font-mono text-[12.5px] font-semibold">{t.plate}</span>
+                      <span style={{ color: "var(--ink-3)" }} className="text-[11.5px]">
+                        · {t.driverName}
+                      </span>
                     </div>
-                    <div style={{ color: "var(--ink-3)" }} className="mt-px truncate text-[12px]">
-                      {v.from} → {v.to}
+                    <div
+                      style={{ color: "var(--ink-3)" }}
+                      className="mt-px truncate text-[12px]"
+                    >
+                      {STATUS_LABELS[t.status]}
+                      {next ? ` → ${next.name}` : ""}
                     </div>
                   </div>
-                  <div style={{ color: "var(--ink-2)" }} className="text-right font-mono text-[12px]">
-                    <div>{v.eta}</div>
-                    <div style={{ color: "var(--ink-4)" }} className="text-[11px]">{v.load}%</div>
+                  <div
+                    style={{ color: "var(--ink-2)" }}
+                    className="text-right font-mono text-[12px]"
+                  >
+                    <div>
+                      {next
+                        ? new Date(next.plannedAt).toLocaleTimeString("fr-FR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "—"}
+                    </div>
+                    <div style={{ color: "var(--ink-4)" }} className="text-[11px]">
+                      {t.load}%
+                    </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
         </Card>
       </div>
+
+      <TruckDetailDrawer
+        truck={selectedTruck}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      />
     </>
   );
 }

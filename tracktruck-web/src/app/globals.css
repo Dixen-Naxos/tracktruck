@@ -109,3 +109,575 @@ textarea::placeholder {
   border-color: var(--line-strong);
 }
 .tt-pulse { animation: ttPulse 2s infinite; }
+
+/* ====================================================================== */
+/* /carte — Leaflet map + custom markers + side drawer                    */
+/* ====================================================================== */
+
+.tt-map-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.tt-map {
+  width: 100%;
+  height: 100%;
+  background: var(--surface-2);
+  font: inherit;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.tt-map--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--ink-3);
+  font-size: 13px;
+  background: var(--surface-2);
+  border-radius: 14px;
+}
+
+.tt-map__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: tt-spin 0.7s linear infinite;
+}
+
+@keyframes tt-spin { to { transform: rotate(360deg); } }
+
+/* Make Leaflet honour our typography. */
+.leaflet-container {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--surface);
+  color: var(--ink-1);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--line);
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  width: auto \!important;
+}
+
+.leaflet-popup-close-button {
+  color: var(--ink-3) \!important;
+  font-size: 18px \!important;
+  padding: 6px 8px \!important;
+}
+
+/* ----- Truck marker (divIcon) --------------------------------------- */
+
+.tt-truck-icon { background: transparent; border: none; }
+
+.tt-truck {
+  position: relative;
+  width: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
+}
+
+.tt-truck__pin {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #ffffff;
+  transition: transform 0.18s cubic-bezier(.2,.8,.2,1);
+}
+
+.tt-truck--selected .tt-truck__pin {
+  transform: scale(1.18);
+  box-shadow: 0 0 0 4px color-mix(in oklab, currentColor 14%, transparent);
+}
+
+.tt-truck__heading {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  margin-left: -6px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid currentColor;
+  transform-origin: 50% 22px;
+  background: transparent \!important;
+}
+
+.tt-truck__plate {
+  margin-top: 4px;
+  padding: 1px 6px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+/* ----- Stop markers (warehouse / store / pickup / delivery) --------- */
+
+.tt-stop-icon { background: transparent; border: none; }
+
+.tt-stop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.18));
+}
+
+.tt-stop__pin {
+  width: 26px;
+  height: 26px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+}
+
+.tt-stop__pin > svg {
+  transform: rotate(45deg);
+}
+
+.tt-stop__label {
+  margin-top: 2px;
+  padding: 1px 5px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ----- Truck popup (inside Leaflet Popup) --------------------------- */
+
+.tt-popup-wrap .leaflet-popup-content-wrapper { padding: 0; border-radius: 12px; }
+
+.tt-popup {
+  padding: 14px 14px 12px;
+  min-width: 220px;
+  font-family: var(--font-sans);
+  color: var(--ink-1);
+}
+
+.tt-popup__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tt-popup__plate {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink-1);
+}
+
+.tt-popup__status {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.tt-popup__driver {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+.tt-popup__grid {
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+}
+
+.tt-popup__grid > div { min-width: 0; }
+
+.tt-popup__grid dt {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.tt-popup__grid dd {
+  margin: 1px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+.tt-popup__nextstop {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tt-popup__cta {
+  margin-top: 14px;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.tt-popup__cta:hover { filter: brightness(0.95); }
+
+/* ----- Truck row in side list -------------------------------------- */
+
+.tt-truck-row {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.tt-truck-row:hover { background: var(--surface-2); }
+
+.tt-truck-row[data-selected] {
+  background: var(--accent-soft);
+}
+
+/* ====================================================================== */
+/* Side drawer — truck details                                            */
+/* ====================================================================== */
+
+.tt-drawer__scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 17, 30, 0.32);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+  z-index: 90;
+}
+
+.tt-drawer__scrim[data-open] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tt-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 420px;
+  max-width: 100vw;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(.2,.8,.2,1);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tt-drawer[data-open] { transform: translateX(0); }
+
+.tt-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tt-drawer__title { display: flex; align-items: center; gap: 10px; }
+
+.tt-drawer__plate {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.tt-drawer__status {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.tt-drawer__close {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.tt-drawer__close:hover {
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+}
+
+.tt-drawer__driver {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tt-drawer__driver-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+.tt-drawer__driver-meta {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+
+.tt-drawer__metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tt-drawer__metrics > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tt-drawer__metrics span {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.tt-drawer__metrics strong {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink-1);
+  font-feature-settings: "tnum";
+}
+
+.tt-drawer__alert {
+  margin: 12px 20px 0;
+  padding: 10px 12px;
+  background: var(--warn-soft);
+  color: oklch(0.42 0.14 65);
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.tt-drawer__section {
+  padding: 16px 20px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.tt-drawer__section h3 {
+  margin: 0 0 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+
+.tt-drawer__stops {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.tt-drawer__stop {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 10px;
+  padding: 4px 0 14px;
+  position: relative;
+}
+
+.tt-drawer__stop-rail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.tt-drawer__stop-rail::after {
+  content: "";
+  position: absolute;
+  top: 22px;
+  bottom: -14px;
+  width: 2px;
+  background: var(--line-strong);
+}
+
+.tt-drawer__stop:last-child .tt-drawer__stop-rail::after { display: none; }
+
+.tt-drawer__stop[data-done] .tt-drawer__stop-rail::after {
+  background: color-mix(in oklab, var(--success) 60%, transparent);
+}
+
+.tt-drawer__stop-bullet {
+  position: relative;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--line-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.tt-drawer__stop[data-done] .tt-drawer__stop-bullet {
+  background: var(--success);
+  border-color: var(--success);
+  color: #ffffff;
+}
+
+.tt-drawer__stop[data-current] .tt-drawer__stop-bullet {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.tt-drawer__stop-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tt-drawer__stop-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+.tt-drawer__stop-eta {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  font-feature-settings: "tnum";
+}
+
+.tt-drawer__stop-addr {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: 1px;
+}
+
+.tt-drawer__stop-kind {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
+
+.tt-drawer__stop-kind[data-kind="warehouse"] { color: #0f172a; background: #f1f5f9; }
+.tt-drawer__stop-kind[data-kind="pickup"]    { color: #6d28d9; background: #f3e8ff; }
+.tt-drawer__stop-kind[data-kind="store"]     { color: #0e7490; background: #cffafe; }
+.tt-drawer__stop-kind[data-kind="delivery"]  { color: #15803d; background: #dcfce7; }
+
+.tt-drawer__foot {
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tt-drawer__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-ink);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  transition: background 0.15s;
+}
+
+.tt-drawer__more:hover { background: var(--accent-soft); }
+
+@media (max-width: 720px) {
+  .tt-drawer { width: 100vw; }
+}
