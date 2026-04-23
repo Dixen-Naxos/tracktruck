@@ -71,14 +71,39 @@ function VideoCard({ video, animIndex }: { video: DashcamVideo; animIndex: numbe
   );
 }
 
+function DateTimeInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label
+      className="inline-flex h-9 items-center gap-2 rounded-[10px] px-3 text-[13px]"
+      style={{ background: "var(--surface-2)", border: "1px solid var(--line)", color: "var(--ink-3)" }}
+    >
+      {label}
+      <input
+        type="datetime-local"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="border-0 bg-transparent text-[13px] outline-none"
+        style={{ color: "var(--ink-1)" }}
+      />
+    </label>
+  );
+}
+
 export default function DashcamPage() {
   const [videos, setVideos] = React.useState<DashcamVideo[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState("");
+  const [from, setFrom] = React.useState("");
+  const [to, setTo]     = React.useState("");
 
   React.useEffect(() => {
-    listDashcamVideos().then((v) => { setVideos(v); setLoading(false); });
-  }, []);
+    setLoading(true);
+    const fromIso = from ? new Date(from).toISOString() : undefined;
+    const toIso   = to   ? new Date(to).toISOString()   : undefined;
+    listDashcamVideos(fromIso, toIso)
+      .then((v) => { setVideos(v); })
+      .finally(() => setLoading(false));
+  }, [from, to]);
 
   const filtered = React.useMemo(() => {
     if (!search.trim()) return videos;
@@ -97,6 +122,17 @@ export default function DashcamPage() {
           <div className="min-w-[280px] flex-1">
             <SearchInput value={search} onChange={setSearch} placeholder="Rechercher chauffeur, camion…" />
           </div>
+          <DateTimeInput label="De" value={from} onChange={setFrom} />
+          <DateTimeInput label="À"  value={to}   onChange={setTo}   />
+          {(from || to) && (
+            <button
+              onClick={() => { setFrom(""); setTo(""); }}
+              className="text-[12px] cursor-pointer border-0 bg-transparent"
+              style={{ color: "var(--ink-3)" }}
+            >
+              Réinitialiser
+            </button>
+          )}
           <div style={{ color: "var(--ink-3)", fontSize: 13 }}>
             {loading ? "…" : `${filtered.length} segment${filtered.length !== 1 ? "s" : ""}`}
           </div>

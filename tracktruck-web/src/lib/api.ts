@@ -107,8 +107,12 @@ function _devStub<T>(method: Method, path: string, body?: unknown): T {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
-export async function listDashcamVideos(): Promise<DashcamVideo[]> {
-  const res = await fetch(`${API_BASE}/videos`, { cache: "no-store" });
+export async function listDashcamVideos(from?: string, to?: string): Promise<DashcamVideo[]> {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to)   params.set("to", to);
+  const query = params.size ? `?${params}` : "";
+  const res = await fetch(`${API_BASE}/videos${query}`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to load videos");
   return res.json() as Promise<DashcamVideo[]>;
 }

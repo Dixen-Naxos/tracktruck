@@ -11,13 +11,19 @@ const uploadUrlSchema = z.object({
   timestamp: z.iso.datetime().transform((s) => new Date(s)),
 });
 
+const listQuerySchema = z.object({
+  from: z.iso.datetime().transform((s) => new Date(s)).optional(),
+  to:   z.iso.datetime().transform((s) => new Date(s)).optional(),
+});
+
 const videoIdParamSchema = z.object({
   videoId: z.string().refine((id) => ObjectId.isValid(id), "Invalid video ID"),
 });
 
 export const videosRoute = new Hono<AuthEnv>()
-  .get("/", async (c) => {
-    const videos = await listDashcamVideos();
+  .get("/", zValidator("query", listQuerySchema), async (c) => {
+    const { from, to } = c.req.valid("query");
+    const videos = await listDashcamVideos(from, to);
     return c.json(videos);
   })
   .post(

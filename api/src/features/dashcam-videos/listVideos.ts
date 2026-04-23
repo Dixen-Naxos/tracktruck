@@ -20,32 +20,34 @@ export type DashcamVideoSummary = {
   deliveryId?: string;
 };
 
-export async function listDashcamVideos(): Promise<DashcamVideoSummary[]> {
-  const results = await dashcamVideos
-    .aggregate<AggResult>([
-      { $sort: { timestamp: -1 } },
-      {
-        $lookup: {
-          from: "users",
-          localField: "driverId",
-          foreignField: "_id",
-          as: "driver",
+export async function listDashcamVideos(from?: Date, to?: Date): Promise<DashcamVideoSummary[]> {
+  const pipeline: object[] = [];
+
+  if (from || to) {
+    pipeline.push({
+      $match: {
+        timestamp: {
+          ...(from && { $gte: from }),
+          ...(to && { $lte: to }),
         },
       },
-      { $unwind: { path: "$driver", preserveNullAndEmptyArrays: true } },
-    ])
-    .toArray();
+    });
+  }
+
+  pipeline.push(
+    { $sort: { timestamp: -1 } },
+    { $lookup: { from: "users", localField: "driverId", foreignField: "_id", as: "driver" } },
+    { $unwind: { path: "$driver", preserveNullAndEmptyArrays: true } },
+  );
+
+  const results = await dashcamVideos.aggregate<AggResult>(pipeline).toArray();
 
   return results.map((v) => ({
     id: v._id.toHexString(),
     assetPath: v.assetPath,
     timestamp: v.timestamp.toISOString(),
     driver: v.driver?.firstName
-      ? {
-          id: v.driver._id.toHexString(),
-          firstName: v.driver.firstName,
-          lastName: v.driver.lastName ?? "",
-        }
+      ? { id: v.driver._id.toHexString(), firstName: v.driver.firstName, lastName: v.driver.lastName ?? "" }
       : null,
     truckId: v.truckId?.toHexString(),
     deliveryId: v.deliveryId?.toHexString(),
