@@ -15,6 +15,7 @@ import { warehousesRoute } from "./routes/warehouses.js";
 import { storesRoute } from "./routes/stores.js";
 import { itinerariesRoute } from "./routes/itineraries.js";
 import { deliveriesRoute } from "./routes/deliveries.js";
+import { seederRoute } from "./routes/seeder.js";
 import { cors } from "hono/cors";
 import { startSytadinPolling } from "./features/incidents/fetchIncidents.js";
 
@@ -29,7 +30,8 @@ const app = new Hono<AuthEnv>()
   .route("/warehouses", warehousesRoute)
   .route("/stores", storesRoute)
   .route("/itineraries", itinerariesRoute)
-  .route("/deliveries", deliveriesRoute);
+  .route("/deliveries", deliveriesRoute)
+  .route("/seeder", seederRoute);
 
 app.get(
   "/openapi.json",
