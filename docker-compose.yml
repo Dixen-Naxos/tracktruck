@@ -35,7 +35,7 @@ services:
       - db
 
   web:
-    image: dixennaxos/tracktruck:web
+    image: dixennaxos/tracktruck:front
     build:
       context: ./tracktruck-web
     container_name: tracktruck-web
