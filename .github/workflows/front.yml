@@ -26,6 +26,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Write .env for build
+        run: echo "${{ secrets.ENV_FRONT }}" > ./tracktruck-web/.env
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
