@@ -7,14 +7,21 @@ import { DRIVERS } from "./data";
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+type TokenGetter = () => Promise<string | null>;
+
+let _tokenGetter: TokenGetter | null = null;
+export function setTokenGetter(fn: TokenGetter) { _tokenGetter = fn; }
 
 async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
   await _devDelay();
   return _devStub<T>(method, path, body);
 
+  // const token = _tokenGetter ? await _tokenGetter() : null;
+  // const headers: HeadersInit = { "Content-Type": "application/json" };
+  // if (token) headers["Authorization"] = `Bearer ${token}`;
   // const res = await fetch(BASE_URL + path, {
   //   method,
-  //   headers: { "Content-Type": "application/json" },
+  //   headers,
   //   body: body !== undefined ? JSON.stringify(body) : undefined,
   //   cache: "no-store",
   // });
@@ -107,8 +114,12 @@ function _devStub<T>(method: Method, path: string, body?: unknown): T {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
-export async function listDashcamVideos(): Promise<DashcamVideo[]> {
-  const res = await fetch(`${API_BASE}/videos`, { cache: "no-store" });
+export async function listDashcamVideos(from?: string, to?: string): Promise<DashcamVideo[]> {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to)   params.set("to", to);
+  const query = params.size ? `?${params}` : "";
+  const res = await fetch(`${API_BASE}/videos${query}`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to load videos");
   return res.json() as Promise<DashcamVideo[]>;
 }
