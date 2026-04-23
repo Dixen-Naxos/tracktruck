@@ -4,6 +4,8 @@ import { z } from "zod";
 import { requireAuth, requireRole, type AuthEnv } from "../auth/middleware.js";
 import { createDriver } from "../features/drivers/createDriver.js";
 import { deleteDriver } from "../features/drivers/deleteDriver.js";
+import { getDriver } from "../features/drivers/getDriver.js";
+import { listDrivers } from "../features/drivers/listDrivers.js";
 import { updateDriver } from "../features/drivers/updateDriver.js";
 import { idParamSchema } from "../utils/idParamSchema.js";
 
@@ -27,6 +29,13 @@ export const driversRoute = new Hono<AuthEnv>()
   .post("/", validator("json", createDriverSchema), async (c) => {
     const driver = await createDriver(c.req.valid("json"));
     return c.json(driver, 201);
+  })
+  .get("/", async (c) => {
+    return c.json(await listDrivers());
+  })
+  .get("/:id", validator("param", idParamSchema), async (c) => {
+    const { id } = c.req.valid("param");
+    return c.json(await getDriver(id));
   })
   .patch(
     "/:id",
