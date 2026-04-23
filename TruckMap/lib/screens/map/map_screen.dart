@@ -6,6 +6,7 @@ import 'package:truck_map/blocs/itinerary_bloc/itinerary_bloc.dart';
 import 'package:truck_map/blocs/location_bloc/location_bloc.dart';
 import 'package:truck_map/widgets/itinerary_polyline.dart';
 import 'package:truck_map/widgets/user_location_marker.dart';
+import 'package:truck_map/widgets/utility_point.dart';
 import 'package:truck_map/widgets/waypoint_markers.dart';
 
 class MapScreen extends StatefulWidget {
@@ -100,6 +101,7 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                   ItineraryPolyline(routePoints: itinerary.routePoints),
                   WaypointMarkers(waypoints: itinerary.waypoints),
+                  UtilityPointMarkers(points: itinerary.utilityPoints),
                   if (locationState.position != null)
                     UserLocationMarker(position: locationState.position!),
                 ],

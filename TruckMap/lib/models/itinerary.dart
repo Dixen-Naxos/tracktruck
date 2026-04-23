@@ -1,18 +1,21 @@
 import 'package:equatable/equatable.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:truck_map/models/waypoint.dart';
+import 'package:truck_map/widgets/utility_point.dart';
 
 class Itinerary extends Equatable {
   final String id;
   final String name;
   final List<Waypoint> waypoints;
   final List<LatLng> routePoints;
+  final List<UtilityPoint> utilityPoints;
 
   const Itinerary({
     required this.id,
     required this.name,
     required this.waypoints,
     required this.routePoints,
+    this.utilityPoints = const [],
   });
 
   factory Itinerary.fromJson(Map<String, dynamic> json) {
@@ -32,5 +35,5 @@ class Itinerary extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, name, waypoints, routePoints];
+  List<Object?> get props => [id, name, waypoints, routePoints, utilityPoints];
 }
