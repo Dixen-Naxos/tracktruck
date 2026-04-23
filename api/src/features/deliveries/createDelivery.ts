@@ -1,0 +1,53 @@
+import { ObjectId } from "mongodb";
+import { HTTPException } from "hono/http-exception";
+import { deliveries, type Delivery } from "../../db/Delivery.js";
+import { warehouses } from "../../db/Warehouse.js";
+import type { ComputeItineraryResult } from "../itineraries/computeItinerary.js";
+
+export type CreateDeliveryInput = {
+  departureWarehouseId: ObjectId;
+  plannedStartAt: Date;
+  itineraryResult: ComputeItineraryResult;
+};
+
+export async function createDelivery(input: CreateDeliveryInput): Promise<Delivery> {
+  const { departureWarehouseId, plannedStartAt, itineraryResult } = input;
+  const { orderedStopIds, totalDistanceKilometers, totalDurationSeconds, points } = itineraryResult;
+
+  // Verify departure warehouse exists
+  const warehouse = await warehouses.findOne({ _id: departureWarehouseId });
+  if (!warehouse) throw new HTTPException(404, { message: "Departure warehouse not found" });
+
+  // Dedup: same warehouse + same ordered stores + same plannedStartAt → skip
+  const existing = await deliveries.findOne({
+    departureWarehouseId,
+    plannedStartAt,
+    storeIds: { $eq: orderedStopIds },
+  });
+  if (existing) {
+    throw new HTTPException(409, {
+      message: "An identical delivery (same warehouse, stores and departure time) already exists",
+    });
+  }
+
+  // Build itinerary steps from the points list
+  const itinerary = points.slice(0, -1).map((start, i) => ({
+    start,
+    end: points[i + 1],
+  }));
+
+  const delivery: Delivery = {
+    _id: new ObjectId(),
+    departureWarehouseId,
+    storeIds: orderedStopIds,
+    totalDistanceKm: totalDistanceKilometers,
+    totalDurationSeconds,
+    plannedStartAt,
+    storeArrivals: [],
+    status: "planned",
+    itinerary,
+  };
+
+  await deliveries.insertOne(delivery);
+  return delivery;
+}

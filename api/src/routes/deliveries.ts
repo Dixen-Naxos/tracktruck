@@ -1,0 +1,68 @@
+import { Hono } from "hono";
+import { describeRoute, validator } from "hono-openapi";
+import { ObjectId } from "mongodb";
+import { z } from "zod";
+import { requireAuth, requireRole, type AuthEnv } from "../auth/middleware.js";
+import { createDelivery } from "../features/deliveries/createDelivery.js";
+import { listDeliveries } from "../features/deliveries/listDeliveries.js";
+import { computeItinerary } from "../features/itineraries/computeItinerary.js";
+
+const objectIdSchema = z
+  .string()
+  .refine((s) => ObjectId.isValid(s), "Invalid ID")
+  .transform((s) => new ObjectId(s));
+
+const createDeliverySchema = z.object({
+  departureWarehouseId: objectIdSchema,
+  /** IDs of stores to visit (order will be optimized by Google) */
+  storeIds: z.array(objectIdSchema).min(1),
+  plannedStartAt: z.iso.datetime().transform((s) => new Date(s)),
+});
+
+export const deliveriesRoute = new Hono<AuthEnv>()
+  // .use("*", requireAuth, requireRole("admin"))
+  .post(
+    "/",
+    describeRoute({
+      summary: "Create a delivery",
+      description:
+        "Computes the optimal itinerary via Google Routes API then persists the delivery. Returns 409 if an identical delivery already exists.",
+      tags: ["Deliveries"],
+      responses: {
+        201: { description: "Delivery created" },
+        404: { description: "Warehouse or store not found" },
+        409: { description: "Identical delivery already exists" },
+        502: { description: "Google Routes API error" },
+      },
+    }),
+    validator("json", createDeliverySchema),
+    async (c) => {
+      const { departureWarehouseId, storeIds, plannedStartAt } = c.req.valid("json");
+
+      const itineraryResult = await computeItinerary({
+        startPointId: departureWarehouseId,
+        toVisitIds: storeIds,
+      });
+
+      const delivery = await createDelivery({
+        departureWarehouseId,
+        plannedStartAt,
+        itineraryResult,
+      });
+
+      return c.json(delivery, 201);
+    },
+  )
+  .get(
+    "/",
+    describeRoute({
+      summary: "List all deliveries",
+      tags: ["Deliveries"],
+      responses: {
+        200: { description: "List of deliveries" },
+      },
+    }),
+    async (c) => {
+      return c.json(await listDeliveries());
+    },
+  );
