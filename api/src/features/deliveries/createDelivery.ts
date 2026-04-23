@@ -34,7 +34,7 @@ export async function createDelivery(input: CreateDeliveryInput): Promise<Delive
     _id: new ObjectId(),
     departureWarehouseId,
     storeIds: orderedStopIds,
-    totalDistanceKm: totalDistanceKilometers,
+    distanceKm: totalDistanceKilometers,
     totalDurationSeconds,
     plannedStartAt,
     storeArrivals: [],

@@ -1,22 +1,36 @@
 import { Hono } from "hono";
 import { describeRoute, validator } from "hono-openapi";
+import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { requireAuth, requireRole, type AuthEnv } from "../auth/middleware.js";
-import { assignDriverToDelivery } from "../features/deliveries/assignDriver.js";
 import { createDelivery } from "../features/deliveries/createDelivery.js";
 import { listDeliveries } from "../features/deliveries/listDeliveries.js";
+import { getDeliveryFuelConsumption } from "../features/deliveries/getFuelConsumption.js";
+import { getDeliveryTripCost } from "../features/deliveries/getTripCost.js";
 import { computeItinerary } from "../features/itineraries/computeItinerary.js";
-import { idParamSchema, zObjectId } from "../utils/idParamSchema.js";
+
+const objectIdSchema = z
+  .string()
+  .refine((s) => ObjectId.isValid(s), "Invalid ID")
+  .transform((s) => new ObjectId(s));
+
+const deliveryIdParamSchema = z.object({
+  deliveryId: objectIdSchema,
+});
+
+const tripCostQuerySchema = z.object({
+  pricePerLiter: z.coerce.number().positive(),
+});
 
 const createDeliverySchema = z.object({
-  departureWarehouseId: zObjectId,
+  departureWarehouseId: objectIdSchema,
   /** IDs of stores to visit (order will be optimized by Google) */
-  storeIds: z.array(zObjectId).min(1),
+  storeIds: z.array(objectIdSchema).min(1),
   plannedStartAt: z.iso.datetime().transform((s) => new Date(s)),
 });
 
 export const deliveriesRoute = new Hono<AuthEnv>()
-  .use("*", requireAuth)
+  // .use("*", requireAuth, requireRole("admin"))
   .post(
     "/",
     describeRoute({
@@ -46,11 +60,9 @@ export const deliveriesRoute = new Hono<AuthEnv>()
         502: { description: "Google Routes API error" },
       },
     }),
-    requireRole("admin"),
     validator("json", createDeliverySchema),
     async (c) => {
-      const { departureWarehouseId, storeIds, plannedStartAt } =
-        c.req.valid("json");
+      const { departureWarehouseId, storeIds, plannedStartAt } = c.req.valid("json");
 
       const itineraryResult = await computeItinerary({
         startPointId: departureWarehouseId,
@@ -69,48 +81,52 @@ export const deliveriesRoute = new Hono<AuthEnv>()
   .get(
     "/",
     describeRoute({
-      summary: "List deliveries",
-      description:
-        "Admins get every delivery. Drivers get only the deliveries assigned to them.",
+      summary: "List all deliveries",
       tags: ["Deliveries"],
       responses: {
         200: { description: "List of deliveries" },
       },
     }),
     async (c) => {
-      const user = c.get("user");
-      if (user.role === "driver") {
-        return c.json(await listDeliveries({ driverId: user._id }));
-      }
       return c.json(await listDeliveries());
     },
   )
-  .put(
-    "/:id/driver",
+  .get(
+    "/:deliveryId/fuel-consumption",
     describeRoute({
-      summary: "Assign or reassign a driver to a delivery (admin only)",
-      description:
-        "Sets the driver of a delivery. Pass `driverId: null` to unassign.",
+      summary: "Get fuel consumption for a delivery",
+      description: "Returns the fuel consumption in liters based on the truck assigned to the delivery and its total distance.",
       tags: ["Deliveries"],
       responses: {
-        200: { description: "Driver assigned" },
-        400: { description: "Target user is not a driver" },
-        403: { description: "Forbidden — admin role required" },
-        404: { description: "Delivery or driver not found" },
+        200: { description: "Fuel consumption details" },
+        404: { description: "Delivery or truck not found" },
+        422: { description: "No truck or distance assigned" },
       },
     }),
-    requireRole("admin"),
-    validator("param", idParamSchema),
-    validator(
-      "json",
-      z.object({
-        driverId: zObjectId.nullable(),
-      }),
-    ),
+    validator("param", deliveryIdParamSchema),
     async (c) => {
-      const { id } = c.req.valid("param");
-      const { driverId } = c.req.valid("json");
-      const delivery = await assignDriverToDelivery(id, driverId);
-      return c.json(delivery);
+      const { deliveryId } = c.req.valid("param");
+      return c.json(await getDeliveryFuelConsumption(deliveryId));
+    },
+  )
+  .get(
+    "/:deliveryId/trip-cost",
+    describeRoute({
+      summary: "Get the fuel cost of a delivery",
+      description: "Calculates the total fuel cost based on the truck's consumption, the delivery's distance, and the current price per liter.",
+      tags: ["Deliveries"],
+      responses: {
+        200: { description: "Trip cost breakdown" },
+        400: { description: "Missing or invalid pricePerLiter" },
+        404: { description: "Delivery or truck not found" },
+        422: { description: "No truck or distance assigned" },
+      },
+    }),
+    validator("param", deliveryIdParamSchema),
+    validator("query", tripCostQuerySchema),
+    async (c) => {
+      const { deliveryId } = c.req.valid("param");
+      const { pricePerLiter } = c.req.valid("query");
+      return c.json(await getDeliveryTripCost(deliveryId, pricePerLiter));
     },
   );

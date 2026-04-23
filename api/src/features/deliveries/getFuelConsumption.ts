@@ -23,14 +23,14 @@ export async function getDeliveryFuelConsumption(
   const truck = await trucks.findOne({ _id: delivery.truckId });
   if (!truck) throw new HTTPException(404, { message: "Truck not found" });
 
-  const totalConsumptionL = (truck.fuelConsumptionL100km / 100) * delivery.totalDistanceKm;
+  const totalConsumptionL = (truck.fuelConsumptionL100km / 100) * delivery.distanceKm;
 
   return {
     deliveryId: delivery._id.toHexString(),
     truckId: truck._id.toHexString(),
     plateNumber: truck.plateNumber,
     fuelType: truck.fuelType,
-    distanceKm: delivery.totalDistanceKm,
+    distanceKm: delivery.distanceKm,
     fuelConsumptionL100km: truck.fuelConsumptionL100km,
     totalConsumptionL: Math.round(totalConsumptionL * 100) / 100,
   };
