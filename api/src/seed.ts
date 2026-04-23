@@ -7,7 +7,10 @@ import { trucks } from "./db/Truck.js";
 import { users } from "./db/User.js";
 import { deliveries } from "./db/Delivery.js";
 import { dashcamVideos } from "./db/DashcamVideo.js";
-import { truckPositionTraces } from "./db/TruckPositionTrace.js";
+import {
+  truckPositionTraces,
+  type TruckPositionTrace,
+} from "./db/TruckPositionTrace.js";
 
 async function clearAll() {
   await Promise.all([
@@ -149,9 +152,15 @@ async function seed() {
       storeArrivals: [],
       status: "planned" as const,
       itinerary: [
-        { start: { lat: 48.917, lng: 2.36 },  end: { lat: 48.853, lng: 2.369 } }, // Saint-Denis → Bastille
-        { start: { lat: 48.853, lng: 2.369 }, end: { lat: 48.867, lng: 2.363 } }, // Bastille → République
-        { start: { lat: 48.867, lng: 2.363 }, end: { lat: 48.884, lng: 2.338 } }, // République → Montmartre
+        { start: { lat: 48.917, lng: 2.36 }, end: { lat: 48.853, lng: 2.369 } }, // Saint-Denis → Bastille
+        {
+          start: { lat: 48.853, lng: 2.369 },
+          end: { lat: 48.867, lng: 2.363 },
+        }, // Bastille → République
+        {
+          start: { lat: 48.867, lng: 2.363 },
+          end: { lat: 48.884, lng: 2.338 },
+        }, // République → Montmartre
       ],
     },
 
@@ -167,7 +176,10 @@ async function seed() {
       storeArrivals: [],
       status: "started" as const,
       itinerary: [
-        { start: { lat: 45.733, lng: 4.835 }, end: { lat: 45.761, lng: 4.859 } }, // Jean Jaurès → Part-Dieu
+        {
+          start: { lat: 45.733, lng: 4.835 },
+          end: { lat: 45.761, lng: 4.859 },
+        }, // Jean Jaurès → Part-Dieu
       ],
     },
 
@@ -186,8 +198,11 @@ async function seed() {
       ],
       status: "done" as const,
       itinerary: [
-        { start: { lat: 43.302, lng: 5.37 },  end: { lat: 43.296, lng: 5.37 } },  // Mazenod → Vieux-Port
-        { start: { lat: 43.296, lng: 5.37 },  end: { lat: 43.2965, lng: 5.379 } }, // Vieux-Port → Canebière
+        { start: { lat: 43.302, lng: 5.37 }, end: { lat: 43.296, lng: 5.37 } }, // Mazenod → Vieux-Port
+        {
+          start: { lat: 43.296, lng: 5.37 },
+          end: { lat: 43.2965, lng: 5.379 },
+        }, // Vieux-Port → Canebière
       ],
     },
   ];
@@ -195,14 +210,14 @@ async function seed() {
 
   // --- Truck position traces (Lyon delivery) ---
   const startedDelivery = deliveryDocs[1];
-  const movingTruck = truckDocs[1];
+  const movingDriver = userDocs[1];
 
   const baseLat = warehouseDocs[1].location.lat;
   const baseLng = warehouseDocs[1].location.lng;
 
-  const traceDocs = Array.from({ length: 6 }, (_, i) => ({
+  const traceDocs: TruckPositionTrace[] = Array.from({ length: 6 }, (_, i) => ({
     _id: new ObjectId(),
-    truckId: movingTruck._id,
+    driverId: movingDriver._id,
     deliveryId: startedDelivery._id,
     position: {
       lat: baseLat + i * 0.002,
