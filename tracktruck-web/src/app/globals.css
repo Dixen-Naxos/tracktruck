@@ -889,6 +889,145 @@ textarea::placeholder {
   color: var(--ink-3);
 }
 
+.tt-drawer__form {
+  margin: 0 0 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--accent) 20%, var(--line));
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--accent) 6%, var(--surface)) 0%, var(--surface) 100%);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.tt-drawer__form > * {
+  min-width: 0;
+}
+
+.tt-drawer__form-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tt-drawer__form-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tt-drawer__form-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+.tt-drawer__form-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-1);
+}
+
+.tt-drawer__form-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 9px;
+  padding: 8px 10px;
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  color: color-mix(in oklab, var(--accent-ink) 85%, var(--ink-2));
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.tt-drawer__form-tip svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.tt-drawer__input,
+.tt-drawer__select {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 9px;
+  border: 1px solid var(--line-strong);
+  background: #ffffff;
+  color: var(--ink-1);
+  font-size: 12.5px;
+  padding: 9px 10px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tt-drawer__input:focus,
+.tt-drawer__select:focus {
+  border-color: color-mix(in oklab, var(--accent) 44%, var(--line-strong));
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+
+.tt-drawer__form-row {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tt-drawer__form-row > * {
+  min-width: 0;
+}
+
+.tt-drawer__form-row--address,
+.tt-drawer__form-row--coords {
+  grid-template-columns: 1fr 1fr;
+}
+
+.tt-drawer__addr-preview {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 7px 9px;
+  border: 1px dashed var(--line-strong);
+}
+
+.tt-drawer__error {
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--danger) 9%, transparent);
+  border: 1px solid color-mix(in oklab, var(--danger) 28%, transparent);
+  color: color-mix(in oklab, var(--danger) 86%, black);
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.tt-drawer__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.tt-drawer__more--primary {
+  background: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 65%, var(--line-strong));
+  color: #ffffff;
+}
+
+.tt-drawer__more--primary:hover {
+  background: color-mix(in oklab, var(--accent) 85%, black);
+}
+
 .tt-drawer__stops {
   list-style: none;
   margin: 0;
@@ -1022,6 +1161,24 @@ textarea::placeholder {
 
 @media (max-width: 720px) {
   .tt-drawer { width: 100vw; }
+  .tt-drawer__form {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .tt-drawer__form-row--address,
+  .tt-drawer__form-row--coords {
+    grid-template-columns: 1fr;
+  }
+
+  .tt-drawer__actions {
+    justify-content: stretch;
+  }
+
+  .tt-drawer__actions .tt-drawer__more {
+    flex: 1;
+    justify-content: center;
+  }
 }
 
 /* ---- Reorder / drag & drop of stops --------------------------------- */

@@ -80,6 +80,45 @@ function splitAddress(address: string): { streetNumber: string; streetName: stri
   };
 }
 
+function extractStreetPartsFromReverseGeocode(data: unknown): {
+  streetNumber: string;
+  streetName: string;
+} {
+  const payload =
+    data && typeof data === "object"
+      ? (data as {
+          address?: Record<string, unknown>;
+          name?: unknown;
+          display_name?: unknown;
+        })
+      : null;
+
+  const address = payload?.address ?? null;
+  const getText = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
+
+  const streetName =
+    getText(address?.road) ||
+    getText(address?.pedestrian) ||
+    getText(address?.footway) ||
+    getText(address?.path) ||
+    getText(address?.cycleway) ||
+    getText(address?.residential) ||
+    getText(address?.street) ||
+    getText(payload?.name) ||
+    getText(payload?.display_name).split(",")[0]?.trim() ||
+    "";
+
+  const streetNumber =
+    getText(address?.house_number) ||
+    getText(address?.street_number) ||
+    "";
+
+  return {
+    streetNumber,
+    streetName,
+  };
+}
+
 interface StopRowProps {
   stop: RouteStop;
   index: number;
@@ -371,6 +410,43 @@ export function TruckDetailDrawer({
       lat: String(mapClickPosition[0]),
       lng: String(mapClickPosition[1]),
     }));
+
+    const controller = new AbortController();
+
+    const runReverseGeocode = async () => {
+      try {
+        const [lat, lng] = mapClickPosition;
+        const url =
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1` +
+          `&lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lng))}`;
+
+        const response = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) return;
+        const payload = (await response.json()) as unknown;
+        const parsed = extractStreetPartsFromReverseGeocode(payload);
+        if (!parsed.streetName && !parsed.streetNumber) return;
+
+        setFormValues((prev) => ({
+          ...prev,
+          streetNumber: parsed.streetNumber || prev.streetNumber,
+          streetName: parsed.streetName || prev.streetName,
+        }));
+      } catch {
+        // Keep manual input flow if geocoding fails.
+      }
+    };
+
+    void runReverseGeocode();
+
+    return () => {
+      controller.abort();
+    };
   }, [mapClickPosition, mapClickVersion]);
 
   const remaining = useRouteRemaining(
@@ -676,11 +752,24 @@ export function TruckDetailDrawer({
           </div>
           {formVisible ? (
             <div className="tt-drawer__form">
-              <div className="tt-drawer__inline-note">
-                {isAddingStop ? "Nouvelle etape" : "Modifier l'etape"}
-              </div>
-              <div className="tt-drawer__inline-note">
-                Astuce: selectionne un camion, puis clique sur la carte pour pre-remplir latitude/longitude.
+              <div className="tt-drawer__form-head">
+                <div className="tt-drawer__form-title-row">
+                  <span className="tt-drawer__form-badge">
+                    {isAddingStop ? "Creation" : "Edition"}
+                  </span>
+                  <div className="tt-drawer__form-title">
+                    {isAddingStop ? "Nouvelle etape" : "Modifier l'etape"}
+                  </div>
+                </div>
+                <div className="tt-drawer__form-tip">
+                  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden fill="none">
+                    <path d="M12 3.5a7 7 0 0 0-4.9 12 4.5 4.5 0 0 1 1.35 3.2V19h7.1v-.3a4.5 4.5 0 0 1 1.35-3.2A7 7 0 0 0 12 3.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M9.5 21h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                  <span>
+                    Astuce: selectionne un camion, puis clique sur la carte pour pre-remplir latitude/longitude.
+                  </span>
+                </div>
               </div>
               <input
                 type="text"
@@ -743,7 +832,7 @@ export function TruckDetailDrawer({
                 <div className="tt-drawer__error">{formError}</div>
               ) : null}
               <div className="tt-drawer__actions">
-                <button type="button" className="tt-drawer__more" onClick={submitStopForm}>
+                <button type="button" className="tt-drawer__more tt-drawer__more--primary" onClick={submitStopForm}>
                   Enregistrer
                 </button>
                 <button type="button" className="tt-drawer__more" onClick={resetForm}>
