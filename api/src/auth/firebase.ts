@@ -9,8 +9,18 @@ if (!serviceAccountPath) {
   );
 }
 
+const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
+if (!storageBucket) {
+  throw new Error(
+    "FIREBASE_STORAGE_BUCKET env var must be set to the Cloud Storage bucket name",
+  );
+}
+
 const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf8"));
 
-const app = initializeApp({ credential: cert(serviceAccount) });
+export const firebaseApp = initializeApp({
+  credential: cert(serviceAccount),
+  storageBucket,
+});
 
-export const firebaseAuth = getAuth(app);
+export const firebaseAuth = getAuth(firebaseApp);

@@ -5,7 +5,8 @@ export type DashcamVideo = {
   _id: ObjectId;
   assetPath: string;
   timestamp: Date;
-  truckId: ObjectId;
+  driverId: ObjectId;
+  truckId?: ObjectId;
   deliveryId?: ObjectId;
 };
 
