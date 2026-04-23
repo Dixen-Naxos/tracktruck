@@ -1,7 +1,7 @@
 // API client stubs. Replace with real fetch calls; keep the function signatures stable
 // so the UI doesn't need to change.
 
-import type {DashcamVideo, Driver} from "./types";
+import type { DashcamVideo, Driver, DriverUser } from "./types";
 import { DRIVERS } from "./data";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -13,31 +13,34 @@ let _tokenGetter: TokenGetter | null = null;
 export function setTokenGetter(fn: TokenGetter) { _tokenGetter = fn; }
 
 async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
-  await _devDelay();
-  return _devStub<T>(method, path, body);
+  if (path.startsWith("/api/")) {
+    await _devDelay();
+    return _devStub<T>(method, path, body);
+  }
 
-  // const token = _tokenGetter ? await _tokenGetter() : null;
-  // const headers: HeadersInit = { "Content-Type": "application/json" };
-  // if (token) headers["Authorization"] = `Bearer ${token}`;
-  // const res = await fetch(BASE_URL + path, {
-  //   method,
-  //   headers,
-  //   body: body !== undefined ? JSON.stringify(body) : undefined,
-  //   cache: "no-store",
-  // });
-  // if (!res.ok) throw new Error(`${method} ${path} → ${res.status}`);
-  // if (res.status === 204) return undefined as T;
-  // return res.json() as Promise<T>;
+  const token = _tokenGetter ? await _tokenGetter() : null;
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(BASE_URL + path, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`${method} ${path} → ${res.status}`);
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
 }
 
 // ─── ApiDrivers ───────────────────────────────────────────────────────────────
 
 export const ApiDrivers = {
-  list:   ()                                 => request<Driver[]>("GET",    "/api/drivers"),
-  get:    (id: string)                       => request<Driver> ("GET",    `/api/drivers/${id}`),
-  create: (input: Omit<Driver, "id">)        => request<Driver> ("POST",   "/api/drivers", input),
-  update: (id: string, patch: Partial<Driver>) => request<Driver>("PATCH", `/api/drivers/${id}`, patch),
-  remove: (id: string)                       => request<void>   ("DELETE", `/api/drivers/${id}`),
+  list:       ()                                    => request<Driver[]>("GET",    "/api/drivers"),
+  get:        (id: string)                          => request<Driver> ("GET",    `/api/drivers/${id}`),
+  create:     (input: Omit<Driver, "id">)           => request<Driver> ("POST",   "/api/drivers", input),
+  createUser: (input: DriverUser)                   => request<Driver> ("POST",   "/drivers", input),
+  update:     (id: string, patch: Partial<Driver>)  => request<Driver> ("PATCH",  `/api/drivers/${id}`, patch),
+  remove:     (id: string)                          => request<void>   ("DELETE", `/api/drivers/${id}`),
 };
 
 // ─── ApiOrders ────────────────────────────────────────────────────────────────
@@ -75,6 +78,36 @@ const _devDelay = (ms = 250) => new Promise((r) => setTimeout(r, ms));
 let _driversStore: Driver[] = [...DRIVERS];
 
 function _devStub<T>(method: Method, path: string, body?: unknown): T {
+  if (path === "/drivers" && method === "POST") {
+    const input = body as DriverUser;
+    const created: Driver = {
+      id:           "D-" + Math.random().toString(36).slice(2, 6).toUpperCase(),
+      matricule:    `TT-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+      firstName:    input.firstName,
+      lastName:     input.lastName,
+      phone:        input.phone,
+      email:        input.email,
+      skills:       input.skills,
+      zones:        input.zones,
+      status:       "disponible",
+      rating:       0,
+      missions:     0,
+      since:        new Date().toISOString().slice(0, 10),
+      vehicle:      "—",
+      license:      "",
+      expiry:       "",
+      availability: { mon: 1, tue: 1, wed: 1, thu: 1, fri: 1, sat: 0, sun: 0 },
+      nextLeave:    "—",
+      onTimeRate:   0,
+      incidents30d: 0,
+      avatarTone:   Math.floor(Math.random() * 360),
+      initials:     (input.firstName[0] + input.lastName[0]).toUpperCase(),
+      recent:       [],
+    };
+    _driversStore = [created, ..._driversStore];
+    return created as T;
+  }
+
   if (path === "/api/drivers") {
     if (method === "GET") return [..._driversStore] as T;
     if (method === "POST") {

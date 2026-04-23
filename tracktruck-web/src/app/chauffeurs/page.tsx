@@ -6,11 +6,12 @@ import { Btn, Card, KeyStat, PageHeader, SearchInput, Segment } from "@/componen
 import { Icon } from "@/components/icons";
 import { DriverCard, DriverList } from "@/components/chauffeurs/DriverCard";
 import { DriverModal } from "@/components/chauffeurs/DriverModal";
-import { CreateDrawer } from "@/components/chauffeurs/CreateDrawer";
+import { CreateChauffeur } from "@/components/chauffeurs/CreateChauffeur";
 import { SKILLS } from "@/lib/data";
 import { ApiDrivers } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
-import type { Driver, DriverStatus } from "@/lib/types";
+import type {Driver, DriverStatus, DriverUser} from "@/lib/types";
+import {useEffect} from "react";
 
 type ViewMode = "grid" | "list";
 type StatusFilter = "all" | DriverStatus;
@@ -30,7 +31,7 @@ export default function ChauffeursPage() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const lastFocusedParam = React.useRef<string | null>(null);
 
-  React.useEffect(() => {
+useEffect(() => {
     ApiDrivers.list().then((d) => { setDrivers(d); setLoading(false); });
   }, []);
 
@@ -45,7 +46,7 @@ export default function ChauffeursPage() {
     );
 
     lastFocusedParam.current = focus;
-    if (target) setSelected(target);
+    if (target) React.startTransition(() => setSelected(target));
   }, [drivers, loading, searchParams]);
 
   const filtered = React.useMemo(() => {
@@ -77,8 +78,8 @@ export default function ChauffeursPage() {
     avgRating: drivers.length ? drivers.reduce((s, d) => s + d.rating, 0) / drivers.length : 0,
   }), [drivers]);
 
-  const handleCreate = async (input: Omit<Driver, "id">) => {
-    const created = await ApiDrivers.create(input);
+  const handleCreate = async (input: DriverUser) => {
+    const created = await ApiDrivers.createUser(input);
     setDrivers((prev) => [created, ...prev]);
     setDrawerOpen(false);
     toast(`${created.firstName} ${created.lastName} créé·e`, "success");
@@ -91,9 +92,8 @@ export default function ChauffeursPage() {
         subtitle="Référentiel, compétences et disponibilités"
       >
         <div className="flex items-center gap-2.5">
-          <Btn variant="secondary" icon={<Icon.filter size={14}/>}>Exporter</Btn>
           <Btn variant="primary" icon={<Icon.plus size={14}/>} onClick={() => setDrawerOpen(true)}>
-            Nouveau chauffeur
+            Crée un chauffeur
           </Btn>
         </div>
       </PageHeader>
@@ -181,7 +181,7 @@ export default function ChauffeursPage() {
           onToast={toast}
         />
       )}
-      {drawerOpen && <CreateDrawer onClose={() => setDrawerOpen(false)} onCreate={handleCreate}/>}
+      {drawerOpen && <CreateChauffeur onClose={() => setDrawerOpen(false)} onCreate={handleCreate} />}
     </>
   );
 }
