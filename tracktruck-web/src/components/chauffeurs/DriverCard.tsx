@@ -1,10 +1,10 @@
-"use client";
-
 import * as React from "react";
 import { Avatar, Card, Hairline, SkillTag, StatusPill } from "../primitives";
 import { Icon } from "../icons";
 import { SKILLS } from "@/lib/data";
 import type { Driver } from "@/lib/types";
+
+const LIST_COLS = "grid-cols-[2fr_1.2fr_0.8fr_1.4fr_0.8fr_0.6fr_40px]";
 
 export function DriverCard({
   driver, onOpen, animIndex = 0,
@@ -89,15 +89,15 @@ export function DriverList({
     <Card pad={0}>
       <div
         style={{ borderBottom: "1px solid var(--line)", color: "var(--ink-3)" }}
-        className="grid grid-cols-[2fr_1.2fr_0.8fr_1.4fr_0.8fr_0.6fr_40px] gap-3.5 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.4px]"
+        className={`grid ${LIST_COLS} gap-3.5 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.4px]`}
       >
-        <div>Chauffeur</div><div>Statut</div><div>Véhicule</div><div>Compétences</div><div>Missions</div><div>Note</div><div></div>
+        <div>Chauffeur</div><div>Statut</div><div>Véhicule</div><div>Compétences</div><div>Missions</div><div>Note</div><div/>
       </div>
       {drivers.map((d, i) => (
         <div
           key={d.id}
           onClick={() => onOpen(d)}
-          className="tt-row-in grid cursor-pointer grid-cols-[2fr_1.2fr_0.8fr_1.4fr_0.8fr_0.6fr_40px] items-center gap-3.5 px-5 py-3.5 text-[13px] transition-colors duration-150 hover:bg-[var(--surface-2)]"
+          className={`tt-row-in grid cursor-pointer ${LIST_COLS} items-center gap-3.5 px-5 py-3.5 text-[13px] transition-colors duration-150 hover:bg-[var(--surface-2)]`}
           style={{ borderBottom: "1px solid var(--line)", animationDelay: `${Math.min(i * 25, 300)}ms` }}
         >
           <div className="flex items-center gap-3">

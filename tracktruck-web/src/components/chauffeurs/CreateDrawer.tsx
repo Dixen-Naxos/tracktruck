@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 import { Btn } from "../primitives";
 import { Icon } from "../icons";

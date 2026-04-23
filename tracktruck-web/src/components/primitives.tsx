@@ -5,17 +5,17 @@ import { Icon } from "./icons";
 import type { DriverStatus, ToastKind } from "@/lib/types";
 import { STATUS_META } from "@/lib/data";
 
+// ─── Avatar ──────────────────────────────────────────────────────────────────
+
 export function Avatar({
   initials, tone = 220, size = 44, ring = false,
 }: { initials: string; tone?: number; size?: number; ring?: boolean }) {
-  const bg = `oklch(0.93 0.035 ${tone})`;
-  const fg = `oklch(0.35 0.12 ${tone})`;
   return (
     <div
       style={{
         width: size, height: size, borderRadius: size * 0.32,
-        background: `linear-gradient(135deg, ${bg}, oklch(0.97 0.02 ${tone}))`,
-        color: fg,
+        background: `linear-gradient(135deg, oklch(0.93 0.035 ${tone}), oklch(0.97 0.02 ${tone}))`,
+        color: `oklch(0.35 0.12 ${tone})`,
         fontSize: size * 0.38,
         boxShadow: ring ? "0 0 0 3px var(--accent-soft)" : "inset 0 0 0 1px rgba(0,0,0,0.04)",
       }}
@@ -25,6 +25,8 @@ export function Avatar({
     </div>
   );
 }
+
+// ─── StatusDot / StatusPill ───────────────────────────────────────────────────
 
 export function StatusDot({
   color, size = 8, pulse = false,
@@ -50,33 +52,31 @@ export function StatusPill({ status }: { status: DriverStatus }) {
   );
 }
 
+// ─── Btn ──────────────────────────────────────────────────────────────────────
+
 type BtnVariant = "primary" | "secondary" | "ghost" | "soft" | "danger";
-type BtnSize = "sm" | "md" | "lg";
+type BtnSize    = "sm" | "md" | "lg";
+
+const BTN_SIZES: Record<BtnSize, { h: number; px: number; fs: number }> = {
+  sm: { h: 28, px: 12, fs: 13   },
+  md: { h: 34, px: 14, fs: 13.5 },
+  lg: { h: 40, px: 18, fs: 14.5 },
+};
+
+const BTN_VARIANTS: Record<BtnVariant, React.CSSProperties> = {
+  primary:   { background: "var(--accent)",       color: "#fff",           boxShadow: "0 1px 2px rgba(17,20,45,0.08), inset 0 1px 0 rgba(255,255,255,0.15)" },
+  secondary: { background: "var(--surface)",      color: "var(--ink-1)",   borderColor: "var(--line-strong)", boxShadow: "var(--shadow-sm)" },
+  ghost:     { background: "transparent",         color: "var(--ink-2)"   },
+  soft:      { background: "var(--accent-soft)",  color: "var(--accent-ink)" },
+  danger:    { background: "var(--danger-soft)",  color: "var(--danger)"  },
+};
 
 export function Btn({
   variant = "primary", size = "md", icon, children, style, className = "", disabled, ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: BtnVariant; size?: BtnSize; icon?: React.ReactNode;
 }) {
-  const sizes: Record<BtnSize, { h: number; px: number; fs: number }> = {
-    sm: { h: 28, px: 12, fs: 13 },
-    md: { h: 34, px: 14, fs: 13.5 },
-    lg: { h: 40, px: 18, fs: 14.5 },
-  };
-  const s = sizes[size];
-  const variants: Record<BtnVariant, React.CSSProperties> = {
-    primary: {
-      background: "var(--accent)", color: "#fff",
-      boxShadow: "0 1px 2px rgba(17,20,45,0.08), inset 0 1px 0 rgba(255,255,255,0.15)",
-    },
-    secondary: {
-      background: "var(--surface)", color: "var(--ink-1)",
-      borderColor: "var(--line-strong)", boxShadow: "var(--shadow-sm)",
-    },
-    ghost: { background: "transparent", color: "var(--ink-2)" },
-    soft: { background: "var(--accent-soft)", color: "var(--accent-ink)" },
-    danger: { background: "var(--danger-soft)", color: "var(--danger)" },
-  };
+  const s = BTN_SIZES[size];
   return (
     <button
       {...rest}
@@ -85,7 +85,7 @@ export function Btn({
         height: s.h, padding: `0 ${s.px}px`, fontSize: s.fs,
         borderRadius: 10, border: "1px solid transparent",
         opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? "none" : "auto",
-        ...variants[variant], ...style,
+        ...BTN_VARIANTS[variant], ...style,
       }}
       className={
         "inline-flex items-center gap-2 font-[550] -tracking-[0.005em] cursor-pointer select-none " +
@@ -96,6 +96,8 @@ export function Btn({
     </button>
   );
 }
+
+// ─── Card ─────────────────────────────────────────────────────────────────────
 
 export function Card({
   children, style, pad = 24, className = "", ...rest
@@ -115,6 +117,8 @@ export function Card({
   );
 }
 
+// ─── Hairline ─────────────────────────────────────────────────────────────────
+
 export function Hairline({
   vertical, style,
 }: { vertical?: boolean; style?: React.CSSProperties }) {
@@ -128,6 +132,8 @@ export function Hairline({
     />
   );
 }
+
+// ─── Kbd ──────────────────────────────────────────────────────────────────────
 
 export function Kbd({ children }: { children: React.ReactNode }) {
   return (
@@ -143,23 +149,29 @@ export function Kbd({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ─── SkillTag ─────────────────────────────────────────────────────────────────
+
+const SKILL_TAG_PALETTE = {
+  default: { bg: "var(--surface-2)",   fg: "var(--ink-2)",      bd: "var(--line)"    },
+  accent:  { bg: "var(--accent-soft)", fg: "var(--accent-ink)", bd: "transparent"    },
+  warn:    { bg: "var(--warn-soft)",   fg: "var(--warn)",       bd: "transparent"    },
+};
+
 export function SkillTag({
   label, variant = "default",
-}: { label: string; variant?: "default" | "accent" | "warn" }) {
-  const palette = {
-    default: { bg: "var(--surface-2)", fg: "var(--ink-2)", bd: "var(--line)" },
-    accent:  { bg: "var(--accent-soft)", fg: "var(--accent-ink)", bd: "transparent" },
-    warn:    { bg: "var(--warn-soft)", fg: "var(--warn)", bd: "transparent" },
-  }[variant];
+}: { label: string; variant?: keyof typeof SKILL_TAG_PALETTE }) {
+  const p = SKILL_TAG_PALETTE[variant];
   return (
     <span
-      style={{ background: palette.bg, color: palette.fg, borderColor: palette.bd }}
+      style={{ background: p.bg, color: p.fg, borderColor: p.bd }}
       className="inline-flex items-center gap-1 rounded-[7px] border px-2.5 py-1 text-[12px] font-medium"
     >
       {label}
     </span>
   );
 }
+
+// ─── Segment ──────────────────────────────────────────────────────────────────
 
 export function Segment<T extends string>({
   options, value, onChange,
@@ -181,8 +193,8 @@ export function Segment<T extends string>({
             onClick={() => onChange(o.value)}
             style={{
               background: active ? "var(--surface)" : "transparent",
-              color: active ? "var(--ink-1)" : "var(--ink-3)",
-              boxShadow: active ? "var(--shadow-sm)" : "none",
+              color:      active ? "var(--ink-1)"  : "var(--ink-3)",
+              boxShadow:  active ? "var(--shadow-sm)" : "none",
             }}
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[13px] font-medium transition-all duration-150"
           >
@@ -193,6 +205,8 @@ export function Segment<T extends string>({
     </div>
   );
 }
+
+// ─── SearchInput ──────────────────────────────────────────────────────────────
 
 export function SearchInput({
   value, onChange, placeholder = "Rechercher",
@@ -215,14 +229,18 @@ export function SearchInput({
   );
 }
 
+// ─── Toast ────────────────────────────────────────────────────────────────────
+
+const TOAST_PALETTE: Record<ToastKind, { ic: string }> = {
+  info:    { ic: "var(--accent)"  },
+  success: { ic: "var(--success)" },
+  warn:    { ic: "var(--warn)"    },
+};
+
 export function Toast({
   kind = "info", children, onClose,
 }: { kind?: ToastKind; children: React.ReactNode; onClose?: () => void }) {
-  const palette = {
-    info:    { ic: "var(--accent)" },
-    success: { ic: "var(--success)" },
-    warn:    { ic: "var(--warn)" },
-  }[kind];
+  const { ic } = TOAST_PALETTE[kind];
   return (
     <div
       style={{
@@ -233,8 +251,8 @@ export function Toast({
     >
       <span
         style={{
-          background: `color-mix(in oklab, ${palette.ic} 14%, transparent)`,
-          color: palette.ic,
+          background: `color-mix(in oklab, ${ic} 14%, transparent)`,
+          color: ic,
         }}
         className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-full"
       >
@@ -254,23 +272,27 @@ export function Toast({
   );
 }
 
+// ─── KeyStat ──────────────────────────────────────────────────────────────────
+
 export function KeyStat({
   label, value, delta, tone = "neutral",
 }: {
   label: string; value: React.ReactNode;
   delta?: string; tone?: "neutral" | "good" | "bad";
 }) {
-  const toneColor = tone === "good" ? "var(--success)" : tone === "bad" ? "var(--danger)" : "var(--ink-3)";
+  const color = tone === "good" ? "var(--success)" : tone === "bad" ? "var(--danger)" : "var(--ink-3)";
   return (
     <div>
       <div style={{ color: "var(--ink-3)" }} className="text-[11.5px] font-medium uppercase tracking-[0.2px]">{label}</div>
       <div className="mt-1 flex items-baseline gap-1.5">
         <span className="text-[22px] font-semibold -tracking-[0.02em]">{value}</span>
-        {delta && <span style={{ color: toneColor }} className="text-[12px] font-medium">{delta}</span>}
+        {delta && <span style={{ color }} className="text-[12px] font-medium">{delta}</span>}
       </div>
     </div>
   );
 }
+
+// ─── PageHeader ───────────────────────────────────────────────────────────────
 
 export function PageHeader({
   title, subtitle, children,

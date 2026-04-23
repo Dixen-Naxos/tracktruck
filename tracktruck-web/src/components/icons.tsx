@@ -18,6 +18,7 @@ const make = (children: React.ReactNode) =>
         strokeLinejoin="round"
         style={style}
         className={className}
+        suppressHydrationWarning
       >
         {children}
       </svg>

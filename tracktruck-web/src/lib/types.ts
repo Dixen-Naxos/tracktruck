@@ -1,5 +1,3 @@
-// Core domain types.
-
 export type DriverStatus = "en-service" | "disponible" | "repos" | "conges";
 
 export type SkillFamily = "Permis" | "Habilitation" | "Matériel" | "Opérationnel" | "Zone";
@@ -89,3 +87,13 @@ export interface ToastItem {
 }
 
 export type ViewKey = "carte" | "chauffeurs" | "commandes" | "dashcam" | "signalements";
+
+export interface DashcamVideo {
+  id: string;
+  assetPath: string;
+  timestamp: string;
+  driverId: string;
+  driverName: string;
+  truckId?: string;
+  deliveryId?: string;
+}

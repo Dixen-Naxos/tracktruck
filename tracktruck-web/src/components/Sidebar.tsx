@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "./icons";
-import { Avatar, Kbd } from "./primitives";
+import { Avatar } from "./primitives";
 import { useApp } from "@/context/AppContext";
 
 interface NavItem {
@@ -47,7 +47,7 @@ export function Sidebar() {
           }}
           className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] text-white"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" suppressHydrationWarning>
             <path d="M3 15V7h10v8M13 11h4l3 3v1"/>
             <circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>
           </svg>
@@ -55,32 +55,12 @@ export function Sidebar() {
         {expanded && (
           <div className="min-w-0">
             <div className="text-[15px] font-[650] -tracking-[0.02em]">TrackTruck</div>
-            <div style={{ color: "var(--ink-3)" }} className="mt-px text-[11.5px]">Supervision · v2.4</div>
+            <div style={{ color: "var(--ink-3)" }} className="mt-px text-[11.5px]">Supervision · v1.0</div>
           </div>
         )}
       </div>
 
-      {expanded && (
-        <div className="px-3.5 pt-1 pb-3">
-          <label
-            style={{ background: "var(--surface-2)", border: "1px solid var(--line)", color: "var(--ink-3)" }}
-            className="flex h-8 items-center gap-2 rounded-[9px] px-2.5"
-          >
-            <Icon.search size={15}/>
-            <span className="flex-1 text-[12.5px]">Rechercher…</span>
-            <Kbd>⌘K</Kbd>
-          </label>
-        </div>
-      )}
-
-      <div
-        style={{ color: "var(--ink-4)" }}
-        className={expanded ? "px-[22px] pt-2 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.6px]" : "py-2 text-center text-[10.5px] font-semibold uppercase tracking-[0.6px]"}
-      >
-        {expanded ? "Modules" : "—"}
-      </div>
-
-      <nav className={(expanded ? "px-2.5" : "px-2") + " flex flex-col gap-[2px]"}>
+      <nav className={(expanded ? "px-2.5" : "px-2") + " mt-3 flex flex-col gap-[2px]"}>
         {nav.map((n) => {
           const isActive = pathname === n.href;
           return (
