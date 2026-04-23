@@ -7,14 +7,21 @@ import { DRIVERS } from "./data";
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+type TokenGetter = () => Promise<string | null>;
+
+let _tokenGetter: TokenGetter | null = null;
+export function setTokenGetter(fn: TokenGetter) { _tokenGetter = fn; }
 
 async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
   await _devDelay();
   return _devStub<T>(method, path, body);
 
+  // const token = _tokenGetter ? await _tokenGetter() : null;
+  // const headers: HeadersInit = { "Content-Type": "application/json" };
+  // if (token) headers["Authorization"] = `Bearer ${token}`;
   // const res = await fetch(BASE_URL + path, {
   //   method,
-  //   headers: { "Content-Type": "application/json" },
+  //   headers,
   //   body: body !== undefined ? JSON.stringify(body) : undefined,
   //   cache: "no-store",
   // });

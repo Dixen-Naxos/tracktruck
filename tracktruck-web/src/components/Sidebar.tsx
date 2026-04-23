@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Icon } from "./icons";
 import { Avatar } from "./primitives";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 
 interface NavItem {
   id: string;
@@ -18,6 +19,10 @@ interface NavItem {
 
 export function Sidebar() {
   const { tweaks } = useApp();
+  const { signOut, user } = useAuth();
+
+  const email = user?.email ?? "";
+  const initials = email.slice(0, 2).toUpperCase();
   const pathname = usePathname();
   const expanded = tweaks.sidebar === "expanded";
   const W = expanded ? 240 : 68;
@@ -112,14 +117,15 @@ export function Sidebar() {
 
       <div style={{ borderTop: "1px solid var(--line)" }} className={expanded ? "p-3" : "p-2.5"}>
         <div className={expanded ? "flex items-center gap-2.5 rounded-[10px] p-2" : "flex items-center justify-center rounded-[10px] py-1"}>
-          <Avatar initials="CA" tone={25} size={34}/>
+          <Avatar initials={initials} tone={25} size={34}/>
           {expanded && (
             <>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[13px] font-semibold -tracking-[0.005em]">Claire Ameline</div>
-                <div style={{ color: "var(--ink-3)" }} className="text-[11.5px]">Administratrice</div>
+                <div className="truncate text-[13px] font-semibold -tracking-[0.005em]">{email}</div>
+                <div style={{ color: "var(--ink-3)" }} className="text-[11.5px]">Administrateur</div>
               </div>
               <button
+                onClick={() => void signOut()}
                 style={{ color: "var(--ink-4)" }}
                 className="cursor-pointer border-0 bg-transparent p-1"
                 aria-label="Déconnexion"
