@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { connect } from "./db/config.js";
 import { ensureUserIndexes } from "./db/User.js";
 import type { AuthEnv } from "./auth/middleware.js";
@@ -8,6 +9,7 @@ import { videosRoute } from "./routes/videos.js";
 import { driversRoute } from "./routes/drivers.js";
 
 const app = new Hono<AuthEnv>()
+  .use("*", cors())
   .get("/", (c) => c.text("Hello Hono!"))
   .route("/videos", videosRoute)
   .route("/drivers", driversRoute);
@@ -19,7 +21,7 @@ async function main() {
   serve(
     {
       fetch: app.fetch,
-      port: 3000,
+      port: 3001,
     },
     (info) => {
       console.log(`Server is running on http://localhost:${info.port}`);

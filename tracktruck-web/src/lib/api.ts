@@ -1,7 +1,7 @@
 // API client stubs. Replace with real fetch calls; keep the function signatures stable
 // so the UI doesn't need to change.
 
-import type { Driver } from "./types";
+import type { Driver, DashcamVideo } from "./types";
 import { DRIVERS } from "./data";
 
 // Simulate network latency so the UI feels real-ish during dev.
@@ -47,4 +47,19 @@ export async function updateDriver(id: string, patch: Partial<Driver>): Promise<
 export async function deleteDriver(id: string): Promise<void> {
   await delay();
   store = store.filter((d) => d.id !== id);
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+
+export async function listDashcamVideos(): Promise<DashcamVideo[]> {
+  const res = await fetch(`${API_BASE}/videos`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to load videos");
+  return res.json() as Promise<DashcamVideo[]>;
+}
+
+export async function getDashcamVideoUrl(videoId: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/videos/${videoId}/download-url`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to get video URL");
+  const { downloadUrl } = await res.json() as { downloadUrl: string };
+  return downloadUrl;
 }
