@@ -1,5 +1,5 @@
 // Server route that proxies the Google Routes API. The Google API key stays
-// on the server (env var GOOGLE_MAPS_SERVER_KEY) and is never shipped to the
+// on the server (env var GOOGLE_MAPS_API_KEY) and is never shipped to the
 // browser. The endpoint returns a decoded polyline that the front-end can
 // drop straight into a Leaflet `<Polyline>`.
 //
@@ -37,10 +37,10 @@ function toWaypoint([lat, lng]: LatLng) {
 }
 
 export async function POST(req: Request) {
-  const apiKey = process.env.GOOGLE_MAPS_SERVER_KEY;
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: "GOOGLE_MAPS_SERVER_KEY is not configured on the server." },
+      { error: "GOOGLE_MAPS_API_KEY is not configured on the server." },
       { status: 500 },
     );
   }
