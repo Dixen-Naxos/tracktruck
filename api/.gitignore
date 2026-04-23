@@ -27,5 +27,4 @@ lerna-debug.log*
 # misc
 .DS_Store
 
-
 tracktruck-*.json
