@@ -3,9 +3,11 @@ import { describeRoute, validator } from "hono-openapi";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { requireAuth, requireRole, type AuthEnv } from "../auth/middleware.js";
+import { assignDriverToDelivery } from "../features/deliveries/assignDriver.js";
 import { createDelivery } from "../features/deliveries/createDelivery.js";
 import { listDeliveries } from "../features/deliveries/listDeliveries.js";
 import { computeItinerary } from "../features/itineraries/computeItinerary.js";
+import { idParamSchema } from "../utils/idParamSchema.js";
 
 const objectIdSchema = z
   .string()
@@ -79,5 +81,35 @@ export const deliveriesRoute = new Hono<AuthEnv>()
     }),
     async (c) => {
       return c.json(await listDeliveries());
+    },
+  )
+  .put(
+    "/:id/driver",
+    describeRoute({
+      summary: "Assign or reassign a driver to a delivery (admin only)",
+      description:
+        "Sets the driver of a delivery. Pass `driverId: null` to unassign.",
+      tags: ["Deliveries"],
+      responses: {
+        200: { description: "Driver assigned" },
+        400: { description: "Target user is not a driver" },
+        403: { description: "Forbidden — admin role required" },
+        404: { description: "Delivery or driver not found" },
+      },
+    }),
+    requireAuth,
+    requireRole("admin"),
+    validator("param", idParamSchema),
+    validator(
+      "json",
+      z.object({
+        driverId: z.union([objectIdSchema, z.null()]),
+      }),
+    ),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const { driverId } = c.req.valid("json");
+      const delivery = await assignDriverToDelivery(id, driverId);
+      return c.json(delivery);
     },
   );

@@ -103,7 +103,13 @@ export async function runSeed(): Promise<SeedResult> {
   ];
   await trucks.insertMany(truckDocs);
 
-  const userDocs = [
+  const adminDocs = [
+    {
+      _id: new ObjectId(),
+      firebaseUid: "n8lklkfbdBRLR5J0h2FooZ2KhEr2",
+      email: "basile.paoli@gmail.com",
+      role: "admin" as const,
+    },
     {
       _id: new ObjectId(),
       firebaseUid: "seed-admin-1",
@@ -112,29 +118,53 @@ export async function runSeed(): Promise<SeedResult> {
     },
     {
       _id: new ObjectId(),
-      firebaseUid: "seed-driver-1",
-      email: "driver1@tracktruck.dev",
-      role: "driver" as const,
-      firstName: "Alice",
-      lastName: "Martin",
-    },
-    {
-      _id: new ObjectId(),
-      firebaseUid: "seed-driver-2",
-      email: "driver2@tracktruck.dev",
-      role: "driver" as const,
-      firstName: "Bob",
-      lastName: "Durand",
-    },
-    {
-      _id: new ObjectId(),
-      firebaseUid: "seed-driver-3",
-      email: "driver3@tracktruck.dev",
-      role: "driver" as const,
-      firstName: "Chloé",
-      lastName: "Dubois",
+      firebaseUid: "seed-admin-2",
+      email: "marie.lefevre@tracktruck.dev",
+      role: "admin" as const,
     },
   ];
+
+  const driverDocs = [
+    {
+      _id: new ObjectId(),
+      firebaseUid: "J0BZh0OgspX6Vyd6o8aE8aGzOqB2",
+      email: "armanddailly@gmail.com",
+      role: "driver" as const,
+      firstName: "Armand",
+      lastName: "Dailly",
+    },
+    ...[
+      ["Alice", "Martin"],
+      ["Bob", "Durand"],
+      ["Chloé", "Dubois"],
+      ["David", "Bernard"],
+      ["Emma", "Petit"],
+      ["Florian", "Robert"],
+      ["Gaëlle", "Richard"],
+      ["Hugo", "Moreau"],
+      ["Inès", "Laurent"],
+      ["Julien", "Simon"],
+      ["Karim", "Michel"],
+      ["Léa", "Garcia"],
+      ["Mathieu", "David"],
+      ["Nadia", "Bertrand"],
+      ["Olivier", "Roux"],
+      ["Pauline", "Vincent"],
+      ["Quentin", "Fournier"],
+      ["Romain", "Morel"],
+      ["Sophie", "Girard"],
+      ["Thomas", "Andre"],
+    ].map(([firstName, lastName], i) => ({
+      _id: new ObjectId(),
+      firebaseUid: `seed-driver-${i + 1}`,
+      email: `${firstName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}.${lastName.toLowerCase()}@tracktruck.dev`,
+      role: "driver" as const,
+      firstName,
+      lastName,
+    })),
+  ];
+
+  const userDocs = [...adminDocs, ...driverDocs];
   await users.insertMany(userDocs);
 
   const now = Date.now();
@@ -150,6 +180,7 @@ export async function runSeed(): Promise<SeedResult> {
       plannedStartAt: hours(24),
       storeArrivals: [],
       status: "planned" as const,
+      driverId: driverDocs[3]._id,
     },
     {
       _id: new ObjectId(),
@@ -161,6 +192,7 @@ export async function runSeed(): Promise<SeedResult> {
       actualStartAt: hours(-1.5),
       storeArrivals: [],
       status: "started" as const,
+      driverId: driverDocs[0]._id,
     },
     {
       _id: new ObjectId(),
@@ -175,12 +207,13 @@ export async function runSeed(): Promise<SeedResult> {
         { storeId: storeDocs[5]._id, arrivedAt: hours(-46) },
       ],
       status: "done" as const,
+      driverId: driverDocs[2]._id,
     },
   ];
   await deliveries.insertMany(deliveryDocs);
 
   const startedDelivery = deliveryDocs[1];
-  const movingDriver = userDocs[1];
+  const movingDriver = driverDocs[0];
   const baseLat = warehouseDocs[1].location.lat;
   const baseLng = warehouseDocs[1].location.lng;
 
