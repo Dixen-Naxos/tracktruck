@@ -4,8 +4,7 @@ import type { GpsPosition } from "./GpsPosition.js";
 
 export type TruckPositionTrace = {
   _id: ObjectId;
-  truckId: ObjectId;
-  deliveryId: ObjectId;
+  driverId: ObjectId;
   position: GpsPosition;
   timestamp: Date;
 };

@@ -26,7 +26,7 @@ class UploadRepository {
   }
 
   /// Processes the next pending upload in the queue.
-  /// Sends the file directly to the backend API.
+  /// Gets a signed URL from the API then uploads directly to GCS.
   /// Returns the completed task, or null if the queue is empty.
   Future<UploadTask?> processNextUpload({
     void Function(int bytesUploaded, int totalBytes)? onProgress,
@@ -55,10 +55,10 @@ class UploadRepository {
       );
       await uploadQueueService.updateStatus(taskId, UploadStatus.uploading);
 
-      // Upload the file directly to the backend API
+      // Step 1: get signed URL from API, Step 2: PUT directly to GCS
       await uploadApiService.uploadFile(
         filePath: task.filePath,
-        objectName: task.objectName,
+        timestamp: task.createdAt,
         cancelToken: cancelToken,
         onProgress: (sent, total) {
           onProgress?.call(sent, total);
