@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Icon } from "./icons";
 import { Avatar } from "./primitives";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 
 interface NavItem {
   id: string;
@@ -18,6 +19,7 @@ interface NavItem {
 
 export function Sidebar() {
   const { tweaks } = useApp();
+  const { signOut } = useAuth();
   const pathname = usePathname();
   const expanded = tweaks.sidebar === "expanded";
   const W = expanded ? 240 : 68;
@@ -120,6 +122,7 @@ export function Sidebar() {
                 <div style={{ color: "var(--ink-3)" }} className="text-[11.5px]">Administratrice</div>
               </div>
               <button
+                onClick={() => void signOut()}
                 style={{ color: "var(--ink-4)" }}
                 className="cursor-pointer border-0 bg-transparent p-1"
                 aria-label="Déconnexion"
