@@ -277,12 +277,6 @@ export default function CartePage() {
         </div>
       </Card>
 
-      <Card style={{ marginTop: 12, padding: "10px 14px" }}>
-        <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
-          Pour ajouter une etape depuis la carte: 1) selectionne un camion, 2) clique sur la carte, 3) complete le formulaire (nom, numero, rue, type), 4) enregistre.
-        </div>
-      </Card>
-
       <div className="tt-carte-layout">
         <Card className="tt-carte-map-card" pad={0} style={{ overflow: "hidden" }}>
           <div className={`tt-map-wrap tt-carte-map-wrap ${detailFocus ? "tt-carte-map-wrap--focus" : ""}`}>
