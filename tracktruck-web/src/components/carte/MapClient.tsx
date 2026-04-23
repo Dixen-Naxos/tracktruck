@@ -27,9 +27,23 @@ const PARIS_CENTER: LatLng = [48.8566, 2.3522];
 
 interface Props {
   trucks?: TruckLive[];
+  detailFocus?: boolean;
   selectedTruckId: string | null;
   onSelectTruck: (id: string | null) => void;
   onOpenDetails: (id: string) => void;
+}
+
+function InvalidateMapSize({ trigger }: { trigger: string }) {
+  const map = useMap();
+
+  React.useEffect(() => {
+    const raf = window.requestAnimationFrame(() => {
+      map.invalidateSize({ pan: false, animate: false });
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [map, trigger]);
+
+  return null;
 }
 
 /**
@@ -70,6 +84,7 @@ function FocusOnSelected({
 
 export default function MapClient({
   trucks = TRUCKS_LIVE,
+  detailFocus = false,
   selectedTruckId,
   onSelectTruck,
   onOpenDetails,
@@ -183,6 +198,7 @@ export default function MapClient({
         truck={selectedTruck}
         remainingPath={remainingPath}
       />
+      <InvalidateMapSize trigger={detailFocus ? "focus" : "default"} />
     </MapContainer>
   );
 }

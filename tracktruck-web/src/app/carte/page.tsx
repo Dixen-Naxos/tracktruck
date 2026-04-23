@@ -157,6 +157,7 @@ export default function CartePage() {
           <div className={`tt-map-wrap tt-carte-map-wrap ${detailFocus ? "tt-carte-map-wrap--focus" : ""}`}>
             <Map
               trucks={filteredTrucks}
+              detailFocus={detailFocus}
               selectedTruckId={selectedId}
               onSelectTruck={handleSelect}
               onOpenDetails={handleOpenDetails}
