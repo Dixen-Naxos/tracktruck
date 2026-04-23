@@ -1,6 +1,8 @@
 import "dotenv/config";
 import { serve } from "@hono/node-server";
+import { swaggerUI } from "@hono/swagger-ui";
 import { Hono } from "hono";
+import { openAPIRouteHandler } from "hono-openapi";
 import { connect } from "./db/config.js";
 import { ensureUserIndexes } from "./db/User.js";
 import type { AuthEnv } from "./auth/middleware.js";
@@ -14,6 +16,31 @@ const app = new Hono<AuthEnv>()
   .route("/admins", adminsRoutes)
   .route("/videos", videosRoute)
   .route("/drivers", driversRoute);
+
+app.get(
+  "/openapi.json",
+  openAPIRouteHandler(app, {
+    documentation: {
+      info: {
+        title: "TrackTruck API",
+        version: "1.0.0",
+        description: "Fleet tracking API — Hono + MongoDB + Firebase Auth.",
+      },
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: "http",
+            scheme: "bearer",
+            bearerFormat: "Firebase ID token",
+          },
+        },
+      },
+      security: [{ bearerAuth: [] }],
+    },
+  }),
+);
+
+app.get("/docs", swaggerUI({ url: "/openapi.json" }));
 
 async function main() {
   await connect();

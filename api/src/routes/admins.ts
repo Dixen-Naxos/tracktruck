@@ -1,5 +1,5 @@
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { validator } from "hono-openapi";
 import { z } from "zod";
 import { requireAuth, requireRole, type AuthEnv } from "../auth/middleware.js";
 import { createAdmin } from "../features/admins/createAdmin.js";
@@ -13,7 +13,7 @@ export const adminsRoutes = new Hono<AuthEnv>().post(
   "/",
   requireAuth,
   requireRole("admin"),
-  zValidator("json", createAdminSchema),
+  validator("json", createAdminSchema),
   async (c) => {
     const admin = await createAdmin(c.req.valid("json"));
     return c.json(admin, 201);
