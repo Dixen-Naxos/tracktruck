@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import { HTTPException } from "hono/http-exception";
 import { deliveries } from "../../db/Delivery.js";
 import { trucks } from "../../db/Truck.js";
+import { getFuelPricePerLiter } from "../../services/fuelPrice.js";
 
 export type TripCostResult = {
   deliveryId: string;
@@ -15,10 +16,7 @@ export type TripCostResult = {
   totalCostEur: number;
 };
 
-export async function getDeliveryTripCost(
-  deliveryId: ObjectId,
-  pricePerLiter: number,
-): Promise<TripCostResult> {
+export async function getDeliveryTripCost(deliveryId: ObjectId): Promise<TripCostResult> {
   const delivery = await deliveries.findOne({ _id: deliveryId });
   if (!delivery) throw new HTTPException(404, { message: "Delivery not found" });
   if (!delivery.truckId) throw new HTTPException(422, { message: "No truck assigned to this delivery" });
@@ -26,7 +24,9 @@ export async function getDeliveryTripCost(
   const truck = await trucks.findOne({ _id: delivery.truckId });
   if (!truck) throw new HTTPException(404, { message: "Truck not found" });
 
-  const totalConsumptionL = (truck.fuelConsumptionL100km / 100) * delivery.distanceKm;
+  const pricePerLiter = await getFuelPricePerLiter(truck.fuelType);
+
+  const totalConsumptionL = (truck.fuelConsumptionL100km / 100) * delivery.totalDistanceKm;
   const totalCostEur = totalConsumptionL * pricePerLiter;
 
   return {
@@ -34,7 +34,7 @@ export async function getDeliveryTripCost(
     truckId: truck._id.toHexString(),
     plateNumber: truck.plateNumber,
     fuelType: truck.fuelType,
-    distanceKm: delivery.distanceKm,
+    distanceKm: delivery.totalDistanceKm,
     fuelConsumptionL100km: truck.fuelConsumptionL100km,
     totalConsumptionL: Math.round(totalConsumptionL * 100) / 100,
     pricePerLiter,
