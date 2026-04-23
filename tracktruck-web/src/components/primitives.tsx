@@ -195,8 +195,13 @@ export function Segment<T extends string>({
 }
 
 export function SearchInput({
-  value, onChange, placeholder = "Rechercher",
-}: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  value, onChange, placeholder = "Rechercher", shortcutLabel,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  shortcutLabel?: string;
+}) {
   return (
     <label
       style={{ background: "var(--surface-2)", border: "1px solid var(--line)", color: "var(--ink-3)" }}
@@ -210,7 +215,7 @@ export function SearchInput({
         style={{ color: "var(--ink-1)" }}
         className="w-full border-0 bg-transparent text-[13.5px] outline-none"
       />
-      <Kbd>⌘K</Kbd>
+      {shortcutLabel ? <Kbd>{shortcutLabel}</Kbd> : null}
     </label>
   );
 }

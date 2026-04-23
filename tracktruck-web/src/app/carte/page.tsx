@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Btn, Card, KeyStat, PageHeader, StatusDot } from "@/components/primitives";
+import { Btn, Card, KeyStat, PageHeader, SearchInput, Segment, StatusDot } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import Map from "@/components/carte/Map";
 import { TruckDetailDrawer } from "@/components/carte/TruckDetailDrawer";
@@ -10,20 +10,50 @@ import {
   STATUS_LABELS,
   TRUCKS_LIVE,
   type TruckLive,
+  type TruckLiveStatus,
 } from "@/lib/trucks-live";
+
+type StatusFilter = "all" | TruckLiveStatus;
 
 export default function CartePage() {
   const [trucks] = React.useState<TruckLive[]>(TRUCKS_LIVE);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [filtersOpen, setFiltersOpen] = React.useState(false);
+  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
+  const [search, setSearch] = React.useState("");
+  const [movingOnly, setMovingOnly] = React.useState(false);
 
-  const onTheRoad = trucks.filter((t) => t.status !== "arret").length;
-  const stopped = trucks.length - onTheRoad;
-  const totalStops = trucks.reduce((acc, t) => acc + t.nextStops.length, 0);
+  const filteredTrucks = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return trucks.filter((t) => {
+      if (statusFilter !== "all" && t.status !== statusFilter) return false;
+      if (movingOnly && t.status === "arret") return false;
+      if (!q) return true;
+      const next = t.nextStops[0];
+      return (
+        t.plate.toLowerCase().includes(q) ||
+        t.driverName.toLowerCase().includes(q) ||
+        t.driverId.toLowerCase().includes(q) ||
+        (next?.name.toLowerCase().includes(q) ?? false)
+      );
+    });
+  }, [movingOnly, search, statusFilter, trucks]);
+
+  const onTheRoad = filteredTrucks.filter((t) => t.status !== "arret").length;
+  const stopped = filteredTrucks.length - onTheRoad;
+  const totalStops = filteredTrucks.reduce((acc, t) => acc + t.nextStops.length, 0);
 
   const selectedTruck =
-    trucks.find((t) => t.id === selectedId) ?? null;
+    filteredTrucks.find((t) => t.id === selectedId) ?? null;
   const detailFocus = drawerOpen && !!selectedTruck;
+
+  React.useEffect(() => {
+    if (!selectedId) return;
+    if (filteredTrucks.some((t) => t.id === selectedId)) return;
+    setSelectedId(null);
+    setDrawerOpen(false);
+  }, [filteredTrucks, selectedId]);
 
   const handleSelect = React.useCallback((id: string | null) => {
     setSelectedId(id);
@@ -34,11 +64,84 @@ export default function CartePage() {
     setDrawerOpen(true);
   }, []);
 
+  const resetFilters = React.useCallback(() => {
+    setStatusFilter("all");
+    setSearch("");
+    setMovingOnly(false);
+  }, []);
+
+  const activeFilters =
+    (statusFilter !== "all" ? 1 : 0) +
+    (movingOnly ? 1 : 0) +
+    (search.trim() ? 1 : 0);
+
   return (
     <div className={`tt-carte-page ${detailFocus ? "tt-carte-page--focus" : ""}`}>
       <PageHeader title="Carte temps réel" subtitle="Position en direct des camions">
-        <Btn variant="secondary" icon={<Icon.filter size={14}/>}>Filtres</Btn>
+        <Btn
+          className="tt-carte-filter-toggle"
+          variant="secondary"
+          size="lg"
+          icon={<Icon.filter size={14}/>}
+          onClick={() => setFiltersOpen((v) => !v)}
+        >
+          Filtres {activeFilters > 0 ? `(${activeFilters})` : ""}
+        </Btn>
       </PageHeader>
+
+      {filtersOpen ? (
+        <Card className="tt-carte-filters tt-fade-in" style={{ marginTop: 16, padding: "14px 16px" }}>
+          <div className="tt-carte-filters__head">
+            <span>Filtrer les véhicules affichés</span>
+            <span>{filteredTrucks.length} résultat{filteredTrucks.length > 1 ? "s" : ""}</span>
+          </div>
+
+          <div className="tt-carte-filters__row">
+            <div className="tt-carte-filters__search">
+              <SearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Plaque, chauffeur, arrêt suivant…"
+              />
+            </div>
+            <div className="tt-carte-filters__segment">
+              <Segment<StatusFilter>
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={[
+                  { value: "all", label: "Tous" },
+                  { value: "en-route", label: "En route" },
+                  { value: "livraison", label: "Livraison" },
+                  { value: "retour", label: "Retour" },
+                  { value: "arret", label: "Arrêt" },
+                ]}
+              />
+            </div>
+            <label className="tt-carte-filters__toggle">
+              <input
+                type="checkbox"
+                checked={movingOnly}
+                onChange={(e) => setMovingOnly(e.target.checked)}
+              />
+              En mouvement uniquement
+            </label>
+            <Btn className="tt-carte-filters__reset" variant="ghost" size="lg" onClick={resetFilters}>
+              Réinitialiser
+            </Btn>
+          </div>
+
+          {activeFilters > 0 ? (
+            <div className="tt-carte-filters__chips">
+              {movingOnly ? (
+                <span className="tt-carte-filter-chip">En mouvement</span>
+              ) : null}
+              {search.trim() ? (
+                <span className="tt-carte-filter-chip">Recherche: {search.trim()}</span>
+              ) : null}
+            </div>
+          ) : null}
+        </Card>
+      ) : null}
 
       <Card className="tt-carte-kpis" style={{ marginTop: 24, padding: "20px 24px" }} pad={0}>
         <div className="grid grid-cols-4 gap-6">
@@ -53,7 +156,7 @@ export default function CartePage() {
         <Card className="tt-carte-map-card" pad={0} style={{ overflow: "hidden" }}>
           <div className={`tt-map-wrap tt-carte-map-wrap ${detailFocus ? "tt-carte-map-wrap--focus" : ""}`}>
             <Map
-              trucks={trucks}
+              trucks={filteredTrucks}
               selectedTruckId={selectedId}
               onSelectTruck={handleSelect}
               onOpenDetails={handleOpenDetails}
@@ -68,11 +171,16 @@ export default function CartePage() {
           >
             <span className="text-[13px] font-semibold -tracking-[0.005em]">Véhicules</span>
             <span style={{ color: "var(--ink-3)" }} className="text-[11.5px]">
-              {trucks.length} actifs
+              {filteredTrucks.length} / {trucks.length}
             </span>
           </div>
           <div>
-            {trucks.map((t) => {
+            {filteredTrucks.length === 0 ? (
+              <div style={{ color: "var(--ink-3)" }} className="px-4 py-6 text-[12.5px]">
+                Aucun véhicule ne correspond aux filtres.
+              </div>
+            ) : null}
+            {filteredTrucks.map((t) => {
               const next = t.nextStops[0];
               const isSelected = t.id === selectedId;
               return (
