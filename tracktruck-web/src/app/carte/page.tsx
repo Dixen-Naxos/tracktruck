@@ -9,20 +9,28 @@ import {
   STATUS_COLORS,
   STATUS_LABELS,
   TRUCKS_LIVE,
+  type LatLng,
+  type RouteStop,
   type TruckLive,
   type TruckLiveStatus,
 } from "@/lib/trucks-live";
 
 type StatusFilter = "all" | TruckLiveStatus;
 
+function isStopLocked(stop: RouteStop): boolean {
+  return !!stop.completedAt;
+}
+
 export default function CartePage() {
-  const [trucks] = React.useState<TruckLive[]>(TRUCKS_LIVE);
+  const [trucks, setTrucks] = React.useState<TruckLive[]>(TRUCKS_LIVE);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
   const [search, setSearch] = React.useState("");
   const [movingOnly, setMovingOnly] = React.useState(false);
+  const [mapClickPosition, setMapClickPosition] = React.useState<LatLng | null>(null);
+  const [mapClickVersion, setMapClickVersion] = React.useState(0);
 
   const filteredTrucks = React.useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -64,11 +72,128 @@ export default function CartePage() {
     setDrawerOpen(true);
   }, []);
 
+  const handleMapClickAddStop = React.useCallback(
+    (position: LatLng) => {
+      if (!selectedId) return;
+      setDrawerOpen(true);
+      setMapClickPosition(position);
+      setMapClickVersion((v) => v + 1);
+    },
+    [selectedId],
+  );
+
   const resetFilters = React.useCallback(() => {
     setStatusFilter("all");
     setSearch("");
     setMovingOnly(false);
   }, []);
+
+  const updateTruckStops = React.useCallback(
+    (truckId: string, updater: (stops: RouteStop[]) => RouteStop[]) => {
+      setTrucks((prev) =>
+        prev.map((truck) => {
+          if (truck.id !== truckId) return truck;
+          return {
+            ...truck,
+            nextStops: updater(truck.nextStops),
+          };
+        }),
+      );
+    },
+    [],
+  );
+
+  const handleAddStop = React.useCallback(
+    (
+      truckId: string,
+      values: {
+        name: string;
+        address: string;
+        kind: RouteStop["kind"];
+        position: [number, number];
+      },
+    ) => {
+      const plannedAt = new Date(Date.now() + 30 * 60_000).toISOString();
+
+      const newStop: RouteStop = {
+        id: `STOP-${crypto.randomUUID()}`,
+        kind: values.kind,
+        name: values.name,
+        address: values.address,
+        position: values.position,
+        plannedAt,
+      };
+
+      updateTruckStops(truckId, (stops) => [...stops, newStop]);
+    },
+    [updateTruckStops],
+  );
+
+  const handleEditStop = React.useCallback(
+    (
+      truckId: string,
+      stopIndex: number,
+      values: {
+        name: string;
+        address: string;
+        kind: RouteStop["kind"];
+        position: [number, number];
+      },
+    ) => {
+      updateTruckStops(truckId, (stops) => {
+        const stop = stops[stopIndex];
+        if (!stop) return stops;
+        if (isStopLocked(stop)) return stops;
+
+        return stops.map((item, index) =>
+          index === stopIndex
+            ? {
+                ...item,
+                name: values.name,
+                address: values.address,
+                kind: values.kind,
+                position: values.position,
+              }
+            : item,
+        );
+      });
+    },
+    [updateTruckStops],
+  );
+
+  const handleDeleteStop = React.useCallback(
+    (truckId: string, stopIndex: number) => {
+      updateTruckStops(truckId, (stops) => {
+        const stop = stops[stopIndex];
+        if (!stop || isStopLocked(stop)) return stops;
+        return stops.filter((_, index) => index !== stopIndex);
+      });
+    },
+    [updateTruckStops],
+  );
+
+  const handleReorderStop = React.useCallback(
+    (truckId: string, fromIndex: number, toIndex: number) => {
+      updateTruckStops(truckId, (stops) => {
+        if (fromIndex < 0 || fromIndex >= stops.length) return stops;
+        if (toIndex < 0 || toIndex >= stops.length) return stops;
+        if (fromIndex === toIndex) return stops;
+
+        const fromStop = stops[fromIndex];
+        const toStop = stops[toIndex];
+        if (!fromStop || !toStop || isStopLocked(fromStop) || isStopLocked(toStop)) {
+          return stops;
+        }
+
+        const next = [...stops];
+        const [moved] = next.splice(fromIndex, 1);
+        if (!moved) return stops;
+        next.splice(toIndex, 0, moved);
+        return next;
+      });
+    },
+    [updateTruckStops],
+  );
 
   const activeFilters =
     (statusFilter !== "all" ? 1 : 0) +
@@ -152,6 +277,12 @@ export default function CartePage() {
         </div>
       </Card>
 
+      <Card style={{ marginTop: 12, padding: "10px 14px" }}>
+        <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
+          Pour ajouter une etape depuis la carte: 1) selectionne un camion, 2) clique sur la carte, 3) complete le formulaire (nom, numero, rue, type), 4) enregistre.
+        </div>
+      </Card>
+
       <div className="tt-carte-layout">
         <Card className="tt-carte-map-card" pad={0} style={{ overflow: "hidden" }}>
           <div className={`tt-map-wrap tt-carte-map-wrap ${detailFocus ? "tt-carte-map-wrap--focus" : ""}`}>
@@ -161,6 +292,7 @@ export default function CartePage() {
               selectedTruckId={selectedId}
               onSelectTruck={handleSelect}
               onOpenDetails={handleOpenDetails}
+              onMapClick={handleMapClickAddStop}
             />
           </div>
         </Card>
@@ -242,6 +374,12 @@ export default function CartePage() {
         open={drawerOpen}
         layout="split"
         onClose={() => setDrawerOpen(false)}
+        onAddStop={handleAddStop}
+        onEditStop={handleEditStop}
+        onDeleteStop={handleDeleteStop}
+        onReorderStop={handleReorderStop}
+        mapClickPosition={mapClickPosition}
+        mapClickVersion={mapClickVersion}
       />
     </div>
   );

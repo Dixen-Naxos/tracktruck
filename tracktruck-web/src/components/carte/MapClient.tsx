@@ -8,6 +8,7 @@ import {
   Popup,
   TileLayer,
   useMap,
+  useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -31,6 +32,17 @@ interface Props {
   selectedTruckId: string | null;
   onSelectTruck: (id: string | null) => void;
   onOpenDetails: (id: string) => void;
+  onMapClick?: (position: LatLng) => void;
+}
+
+function MapClickHandler({ onMapClick }: { onMapClick?: (position: LatLng) => void }) {
+  useMapEvents({
+    click: (event) => {
+      onMapClick?.([event.latlng.lat, event.latlng.lng]);
+    },
+  });
+
+  return null;
 }
 
 function InvalidateMapSize({ trigger }: { trigger: string }) {
@@ -88,6 +100,7 @@ export default function MapClient({
   selectedTruckId,
   onSelectTruck,
   onOpenDetails,
+  onMapClick,
 }: Props) {
   const selectedTruck =
     trucks.find((t) => t.id === selectedTruckId) ?? null;
@@ -114,6 +127,7 @@ export default function MapClient({
         url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         subdomains={["a", "b", "c", "d"]}
       />
+      <MapClickHandler onMapClick={onMapClick} />
 
       {/* Selected truck: traveled trail + remaining route + stops */}
       {selectedTruck ? (
