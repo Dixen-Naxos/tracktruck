@@ -112,23 +112,19 @@ function _devStub<T>(method: Method, path: string, body?: unknown): T {
   throw new Error(`Dev stub: route not handled — ${method} ${path}`);
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
-
 export async function listDashcamVideos(from?: string, to?: string): Promise<DashcamVideo[]> {
   const params = new URLSearchParams();
   if (from) params.set("from", from);
   if (to)   params.set("to", to);
   const query = params.size ? `?${params}` : "";
-  const res = await fetch(`${API_BASE}/videos${query}`, { cache: "no-store" });
+  const res = await fetch(`${BASE_URL}/videos${query}`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to load videos");
   return res.json() as Promise<DashcamVideo[]>;
 }
 
 export async function getDashcamVideoUrl(videoId: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/videos/${videoId}/download-url`, { cache: "no-store" });
+  const res = await fetch(`${BASE_URL}/videos/${videoId}/download-url`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to get video URL");
   const { downloadUrl } = await res.json() as { downloadUrl: string };
   return downloadUrl;
 }
-
-void BASE_URL;
