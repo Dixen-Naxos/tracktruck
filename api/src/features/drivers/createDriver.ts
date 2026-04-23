@@ -6,6 +6,9 @@ export type CreateDriverInput = {
   email: string;
   firstName: string;
   lastName: string;
+  phone: string;
+  skills: string[];
+  zones: string[];
 };
 
 export async function createDriver(
@@ -23,6 +26,9 @@ export async function createDriver(
     role: "driver",
     firstName: input.firstName,
     lastName: input.lastName,
+    phone: input.phone,
+    skills: input.skills,
+    zones: input.zones,
   };
 
   try {

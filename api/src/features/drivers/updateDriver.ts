@@ -6,6 +6,9 @@ import { users, type DriverUser } from "../../db/User.js";
 export type UpdateDriverInput = {
   firstName?: string;
   lastName?: string;
+  phone?: string;
+  skills?: string[];
+  zones?: string[];
 };
 
 export async function updateDriver(

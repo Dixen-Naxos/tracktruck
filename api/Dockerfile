@@ -28,7 +28,7 @@ COPY --from=builder /app/dist ./dist
 
 # firebase-service-account.json must be mounted at runtime, e.g.:
 #   docker run -v ./firebase-service-account.json:/app/firebase-service-account.json
-# or set FIREBASE_SERVICE_ACCOUNT to an absolute path via env.
+# or set FIREBASE_SERVICE_ACCOUNT to an absolute path via .env.
 
 EXPOSE 3000
 
