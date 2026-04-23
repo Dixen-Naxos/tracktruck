@@ -1,3 +1,6 @@
+// API client stubs. Replace with real fetch calls; keep the function signatures stable
+// so the UI doesn't need to change.
+
 import type { Driver } from "./types";
 import { DRIVERS } from "./data";
 
@@ -100,6 +103,21 @@ function _devStub<T>(method: Method, path: string, body?: unknown): T {
   }
 
   throw new Error(`Dev stub: route not handled — ${method} ${path}`);
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+
+export async function listDashcamVideos(): Promise<DashcamVideo[]> {
+  const res = await fetch(`${API_BASE}/videos`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to load videos");
+  return res.json() as Promise<DashcamVideo[]>;
+}
+
+export async function getDashcamVideoUrl(videoId: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/videos/${videoId}/download-url`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to get video URL");
+  const { downloadUrl } = await res.json() as { downloadUrl: string };
+  return downloadUrl;
 }
 
 void BASE_URL;
