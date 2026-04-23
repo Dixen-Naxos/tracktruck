@@ -2,6 +2,7 @@ import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { swaggerUI } from "@hono/swagger-ui";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { openAPIRouteHandler } from "hono-openapi";
 import { connect } from "./db/config.js";
 import { ensureUserIndexes } from "./db/User.js";

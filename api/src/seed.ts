@@ -116,6 +116,9 @@ async function seed() {
       role: "driver" as const,
       firstName: "Alice",
       lastName: "Martin",
+      phone: "+33 6 11 22 33 44",
+      skills: ["frigorifique"],
+      zones: ["Paris"],
     },
     {
       _id: new ObjectId(),
@@ -124,6 +127,9 @@ async function seed() {
       role: "driver" as const,
       firstName: "Bob",
       lastName: "Durand",
+      phone: "+33 6 55 66 77 88",
+      skills: [],
+      zones: ["Lyon"],
     },
     {
       _id: new ObjectId(),
@@ -132,6 +138,9 @@ async function seed() {
       role: "driver" as const,
       firstName: "Chloé",
       lastName: "Dubois",
+      phone: "+33 6 99 00 11 22",
+      skills: ["matières dangereuses"],
+      zones: ["Marseille"],
     },
   ];
   await users.insertMany(userDocs);
