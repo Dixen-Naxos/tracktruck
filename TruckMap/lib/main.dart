@@ -3,16 +3,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:truck_map/blocs/itinerary_bloc/itinerary_bloc.dart';
 import 'package:truck_map/blocs/location_bloc/location_bloc.dart';
-import 'package:truck_map/repositories/itinerary_data_source/mock_itinerary_data_source.dart';
+import 'package:truck_map/repositories/itinerary_data_source/remote_itinerary_data_source.dart';
 import 'package:truck_map/repositories/itinerary_repository.dart';
 import 'package:truck_map/screens/map/map_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Swap MockItineraryDataSource -> RemoteItineraryDataSource when API is ready
-  final dataSource = MockItineraryDataSource();
-  final itineraryRepository = ItineraryRepository(dataSource: dataSource);
+  final itineraryRepository = ItineraryRepository(
+    dataSource: RemoteItineraryDataSource(),
+  );
 
   runApp(TruckMap(itineraryRepository: itineraryRepository));
 }
@@ -30,8 +30,7 @@ class TruckMap extends StatelessWidget {
         providers: [
           BlocProvider(
             create: (_) =>
-                ItineraryBloc(itineraryRepository: itineraryRepository)
-                  ..add(StartPolling()),
+                ItineraryBloc(itineraryRepository: itineraryRepository),
           ),
           BlocProvider(
             create: (_) => LocationBloc()..add(StartTracking()),

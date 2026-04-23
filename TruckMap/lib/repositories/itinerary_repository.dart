@@ -6,7 +6,13 @@ class ItineraryRepository {
 
   ItineraryRepository({required this.dataSource});
 
-  Future<Itinerary> fetchItinerary() {
-    return dataSource.fetchItinerary();
+  Future<Itinerary> computeItinerary({
+    required String startPointId,
+    required List<String> toVisitIds,
+  }) {
+    return dataSource.computeItinerary(
+      startPointId: startPointId,
+      toVisitIds: toVisitIds,
+    );
   }
 }
