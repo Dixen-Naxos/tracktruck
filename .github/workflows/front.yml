@@ -1,4 +1,4 @@
-name: api.yml
+name: front.yml
 
 on:
   workflow_dispatch:
