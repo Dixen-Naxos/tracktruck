@@ -8,27 +8,19 @@ extension UtilityPointTypeX on UtilityPointType {
   Color get color {
     switch (this) {
       case UtilityPointType.gasStation:
-        return Colors.red.shade600;
+        return const Color(0xFFFFB3B3); // pastel red
       case UtilityPointType.garage:
-        return Colors.grey.shade300;
+        return const Color(0xFFE0E0E0); // pastel grey
       case UtilityPointType.toll:
-        return Colors.purple.shade600;
+        return const Color(0xFFFFF3A0); // pastel yellow
       case UtilityPointType.truckRest:
-        return Colors.blue.shade600;
+        return const Color(0xFFAEC9F5); // pastel blue
       case UtilityPointType.serviceArea:
         return const Color(0xFFB7E4C7); // pastel green
     }
   }
 
-  Color get foreground {
-    switch (this) {
-      case UtilityPointType.garage:
-      case UtilityPointType.serviceArea:
-        return Colors.black87;
-      default:
-        return Colors.white;
-    }
-  }
+  Color get foreground => Colors.black87;
 
   String get label {
     switch (this) {
@@ -76,7 +68,7 @@ class UtilityPointMarkers extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 color: point.type.color,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.white, width: 2),
                 boxShadow: const [
                   BoxShadow(
@@ -114,15 +106,7 @@ class _UtilityIcon extends StatelessWidget {
       case UtilityPointType.garage:
         return Icon(Icons.build, color: color, size: 20);
       case UtilityPointType.toll:
-        return Text(
-          'T',
-          style: TextStyle(
-            color: color,
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-            height: 1,
-          ),
-        );
+        return Icon(Icons.toll, color: color, size: 20);
       case UtilityPointType.truckRest:
         return Text(
           'Zzz',
