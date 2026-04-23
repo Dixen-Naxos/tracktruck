@@ -18,9 +18,6 @@ const deliveryIdParamSchema = z.object({
   deliveryId: objectIdSchema,
 });
 
-const tripCostQuerySchema = z.object({
-  pricePerLiter: z.coerce.number().positive(),
-});
 
 const createDeliverySchema = z.object({
   departureWarehouseId: objectIdSchema,
@@ -113,20 +110,18 @@ export const deliveriesRoute = new Hono<AuthEnv>()
     "/:deliveryId/trip-cost",
     describeRoute({
       summary: "Get the fuel cost of a delivery",
-      description: "Calculates the total fuel cost based on the truck's consumption, the delivery's distance, and the current price per liter.",
+      description: "Calculates the total fuel cost based on the truck's consumption, the delivery's distance, and the live price per liter fetched from prix-carburants.2aaz.fr.",
       tags: ["Deliveries"],
       responses: {
         200: { description: "Trip cost breakdown" },
-        400: { description: "Missing or invalid pricePerLiter" },
         404: { description: "Delivery or truck not found" },
-        422: { description: "No truck or distance assigned" },
+        422: { description: "No truck assigned or fuel type has no price (e.g. electric)" },
+        502: { description: "Fuel price API error" },
       },
     }),
     validator("param", deliveryIdParamSchema),
-    validator("query", tripCostQuerySchema),
     async (c) => {
       const { deliveryId } = c.req.valid("param");
-      const { pricePerLiter } = c.req.valid("query");
-      return c.json(await getDeliveryTripCost(deliveryId, pricePerLiter));
+      return c.json(await getDeliveryTripCost(deliveryId));
     },
   );

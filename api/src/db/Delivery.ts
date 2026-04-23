@@ -13,7 +13,7 @@ export type Delivery = {
   departureWarehouseId: ObjectId;
   /** Store IDs in optimized visit order */
   storeIds: ObjectId[];
-  distanceKm: number;
+  totalDistanceKm: number;
   totalDurationSeconds: number;
   plannedStartAt: Date;
   actualStartAt?: Date;
