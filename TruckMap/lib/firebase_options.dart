@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDrLcc6ucen-HrFjKHk2_wqJCRjcllomAA',
-    appId: '1:403739322403:android:06d86e1340aa9c74d96996',
+    appId: '1:403739322403:android:6d4a06511fd97e9dd96996',
     messagingSenderId: '403739322403',
     projectId: 'tracktruck-494208',
     storageBucket: 'tracktruck-494208.firebasestorage.app',
@@ -59,11 +59,12 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAM9wA_gYw_B4MB8Bwx7SFQ764RMGWVVTA',
-    appId: '1:403739322403:ios:9e03de5068399fd6d96996',
+    appId: '1:403739322403:ios:9e8e7536c55302b8d96996',
     messagingSenderId: '403739322403',
     projectId: 'tracktruck-494208',
     storageBucket: 'tracktruck-494208.firebasestorage.app',
-    iosClientId: '403739322403-0up06votuifdraspgc6npjfs83tq69i3.apps.googleusercontent.com',
-    iosBundleId: 'com.example.appVideo',
+    iosClientId: '403739322403-nv07ehr9udn4u5hjs68cssh4fsaiggk5.apps.googleusercontent.com',
+    iosBundleId: 'com.example.appMap',
   );
+
 }
