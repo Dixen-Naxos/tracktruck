@@ -1023,3 +1023,200 @@ textarea::placeholder {
 @media (max-width: 720px) {
   .tt-drawer { width: 100vw; }
 }
+
+/* ---- Reorder / drag & drop of stops --------------------------------- */
+
+.tt-drawer__reorder-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.tt-drawer__reorder-hint svg {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+/* When editing, ALL stops (origin, past, upcoming) shift right to leave
+   room for a handle column — so rows stay aligned even when no handle
+   is rendered (locked / origin). */
+.tt-drawer__stops[data-editing] .tt-drawer__stop {
+  grid-template-columns: 28px 32px 1fr;
+  padding: 6px 6px 14px;
+  border-radius: 10px;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.tt-drawer__stops[data-editing] .tt-drawer__stop-rail {
+  grid-column: 2;
+}
+
+.tt-drawer__stops[data-editing] .tt-drawer__stop-body {
+  grid-column: 3;
+}
+
+.tt-drawer__stop[data-editing]:hover {
+  background: color-mix(in oklab, var(--accent) 5%, transparent);
+}
+
+.tt-drawer__drag-handle {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: grab;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.12s ease;
+  touch-action: none;
+}
+
+.tt-drawer__drag-handle:hover {
+  background: var(--surface-2);
+  color: var(--ink-1);
+  border-color: var(--line);
+}
+
+.tt-drawer__drag-handle:focus-visible {
+  outline: none;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+.tt-drawer__drag-handle:active {
+  cursor: grabbing;
+  transform: scale(0.94);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+/* Source row while dragging: keep a visible placeholder slot. */
+.tt-drawer__stop[data-dragging] {
+  opacity: 0.22;
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  border-radius: 12px;
+}
+
+/* The handle itself "clicks into" the grab pose on pickup. */
+.tt-drawer__stop[data-dragging] .tt-drawer__drag-handle {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+  cursor: grabbing;
+}
+
+/* Floating ghost follows pointer and tilts with mouse speed. */
+.tt-drawer__drag-ghost {
+  position: fixed;
+  z-index: 1200;
+  pointer-events: none;
+  display: grid;
+  grid-template-columns: 28px 32px 1fr;
+  gap: 10px;
+  padding: 6px 6px 14px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow:
+    0 20px 40px -12px color-mix(in oklab, var(--accent) 55%, transparent),
+    0 10px 22px -10px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px color-mix(in oklab, var(--accent) 35%, var(--line-strong));
+  transform:
+    translate3d(var(--tt-dx, 0px), var(--tt-dy, 0px), 0)
+    rotate(var(--tt-tilt, 0deg))
+    scale(1.03);
+  transform-origin: var(--tt-origin-x, 22px) var(--tt-origin-y, 50%);
+  transition: transform 0.055s linear;
+  will-change: transform;
+}
+
+.tt-drawer__drag-ghost .tt-drawer__stop-rail {
+  grid-column: 2;
+}
+
+.tt-drawer__drag-ghost .tt-drawer__stop-body {
+  grid-column: 3;
+}
+
+.tt-drawer__drag-ghost-handle {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+/* Drop target — show a clear insertion line at the top of the row. */
+.tt-drawer__stop--drag-over {
+  position: relative;
+}
+
+.tt-drawer__stop--drag-over::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: -2px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  pointer-events: none;
+}
+
+/* Locked (already completed) stops — dim the row a touch while editing. */
+.tt-drawer__stop[data-editing][data-done] {
+  opacity: 0.7;
+}
+
+.tt-drawer__locked-note {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.tt-drawer__stop-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.tt-drawer__more[data-danger] {
+  color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger) 30%, var(--line));
+}
+
+.tt-drawer__more[data-danger]:hover {
+  background: color-mix(in oklab, var(--danger) 10%, transparent);
+}

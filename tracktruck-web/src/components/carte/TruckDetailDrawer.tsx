@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import {
   STATUS_COLORS,
   STATUS_LABELS,
@@ -79,6 +80,21 @@ function splitAddress(address: string): { streetNumber: string; streetName: stri
   };
 }
 
+interface StopRowProps {
+  stop: RouteStop;
+  index: number;
+  done: boolean;
+  isCurrent?: boolean;
+  editingEnabled?: boolean;
+  canModify?: boolean;
+  canDrag?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onBeginDrag?: (initial: { clientX: number; clientY: number; rect: DOMRect }) => void;
+  dragActive?: boolean;
+  isDragging?: boolean;
+}
+
 function StopRow({
   stop,
   index,
@@ -89,56 +105,52 @@ function StopRow({
   canDrag,
   onEdit,
   onDelete,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDrop,
+  onBeginDrag,
   dragActive,
   isDragging,
-}: {
-  stop: RouteStop;
-  index: number;
-  done: boolean;
-  isCurrent?: boolean;
-  editingEnabled?: boolean;
-  canModify?: boolean;
-  canDrag?: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
-  onDragStart?: () => void;
-  onDragEnd?: () => void;
-  onDragOver?: (e: React.DragEvent<HTMLLIElement>) => void;
-  onDrop?: () => void;
-  dragActive?: boolean;
-  isDragging?: boolean;
-}) {
+}: StopRowProps) {
+  const liRef = React.useRef<HTMLLIElement>(null);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!canDrag) return;
+    // Only left / primary pointer.
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = liRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    onBeginDrag?.({
+      clientX: e.clientX,
+      clientY: e.clientY,
+      rect,
+    });
+  };
+
   return (
     <li
+      ref={liRef}
       className={`tt-drawer__stop ${dragActive ? "tt-drawer__stop--drag-over" : ""}`}
       data-done={done || undefined}
       data-current={isCurrent || undefined}
       data-editing={editingEnabled || undefined}
       data-dragging={isDragging || undefined}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
+      data-stop-index={index >= 0 ? index : undefined}
     >
       {editingEnabled && canDrag ? (
         <button
           type="button"
           aria-label="Déplacer l'étape"
           title="Glisser pour réordonner"
-          draggable
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
+          onPointerDown={handlePointerDown}
           className="tt-drawer__drag-handle"
         >
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden fill="currentColor">
-            <circle cx="9" cy="6" r="1.4" />
-            <circle cx="15" cy="6" r="1.4" />
-            <circle cx="9" cy="12" r="1.4" />
-            <circle cx="15" cy="12" r="1.4" />
-            <circle cx="9" cy="18" r="1.4" />
-            <circle cx="15" cy="18" r="1.4" />
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden fill="currentColor">
+            <circle cx="9" cy="6" r="1.8" />
+            <circle cx="15" cy="6" r="1.8" />
+            <circle cx="9" cy="12" r="1.8" />
+            <circle cx="15" cy="12" r="1.8" />
+            <circle cx="9" cy="18" r="1.8" />
+            <circle cx="15" cy="18" r="1.8" />
           </svg>
         </button>
       ) : null}
@@ -186,6 +198,80 @@ function StopRow({
   );
 }
 
+/** Floating ghost clone of the dragged row, rendered to document.body so it
+ *  can move anywhere on screen, unaffected by any ancestor's overflow:hidden
+ *  or transform. */
+function DragGhost({
+  stop,
+  index,
+  done,
+  width,
+  height,
+  x,
+  y,
+  tilt,
+  originX,
+  originY,
+}: {
+  stop: RouteStop;
+  index: number;
+  done: boolean;
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+  tilt: number;
+  originX: number;
+  originY: number;
+}) {
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div
+      className="tt-drawer__drag-ghost"
+      style={
+        {
+          top: 0,
+          left: 0,
+          width,
+          height,
+          ["--tt-dx" as string]: `${x}px`,
+          ["--tt-dy" as string]: `${y}px`,
+          ["--tt-tilt" as string]: `${tilt.toFixed(2)}deg`,
+          ["--tt-origin-x" as string]: `${originX}px`,
+          ["--tt-origin-y" as string]: `${originY}px`,
+        } as React.CSSProperties
+      }
+    >
+      <div className="tt-drawer__drag-ghost-handle">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden fill="currentColor">
+          <circle cx="9" cy="6" r="1.8" />
+          <circle cx="15" cy="6" r="1.8" />
+          <circle cx="9" cy="12" r="1.8" />
+          <circle cx="15" cy="12" r="1.8" />
+          <circle cx="9" cy="18" r="1.8" />
+          <circle cx="15" cy="18" r="1.8" />
+        </svg>
+      </div>
+      <div className="tt-drawer__stop-rail">
+        <span className="tt-drawer__stop-bullet">{done ? "✓" : index + 1}</span>
+      </div>
+      <div className="tt-drawer__stop-body">
+        <div className="tt-drawer__stop-head">
+          <span className="tt-drawer__stop-name">{stop.name}</span>
+          <span className="tt-drawer__stop-eta">
+            {formatTime(done ? stop.completedAt ?? stop.plannedAt : stop.plannedAt)}
+          </span>
+        </div>
+        <div className="tt-drawer__stop-addr">{stop.address}</div>
+        <div className="tt-drawer__stop-kind" data-kind={stop.kind}>
+          {KIND_LABEL[stop.kind]}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 const KIND_LABEL: Record<RouteStop["kind"], string> = {
   warehouse: "Entrepôt",
   pickup: "Enlèvement",
@@ -220,6 +306,25 @@ export function TruckDetailDrawer({
   const [formError, setFormError] = React.useState<string | null>(null);
   const [dragFromIndex, setDragFromIndex] = React.useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
+  const [dragGhost, setDragGhost] = React.useState<{
+    width: number;
+    height: number;
+    x: number;
+    y: number;
+    tilt: number;
+    originX: number;
+    originY: number;
+  } | null>(null);
+  const dragStateRef = React.useRef<{
+    fromIndex: number;
+    offsetX: number;
+    offsetY: number;
+    width: number;
+    height: number;
+    lastX: number;
+    lastT: number;
+    currentTilt: number;
+  } | null>(null);
 
   // Lock body scroll when drawer is open (lightweight; no portal needed).
   React.useEffect(() => {
@@ -289,25 +394,121 @@ export function TruckDetailDrawer({
     setIsAddingStop(false);
   };
 
-  const handleDropReorder = (toIndex: number) => {
-    if (dragFromIndex === null) return;
-    if (dragFromIndex === toIndex) {
-      setDragFromIndex(null);
-      setDragOverIndex(null);
-      return;
-    }
-
-    const fromStop = truck.nextStops[dragFromIndex];
+  const performReorder = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    const fromStop = truck.nextStops[fromIndex];
     const toStop = truck.nextStops[toIndex];
-    if (!fromStop || !toStop || isStopLocked(fromStop) || isStopLocked(toStop)) {
+    if (!fromStop || !toStop || isStopLocked(fromStop) || isStopLocked(toStop)) return;
+    onReorderStop?.(truck.id, fromIndex, toIndex);
+  };
+
+  const handleBeginDrag = (
+    fromIndex: number,
+    initial: { clientX: number; clientY: number; rect: DOMRect },
+  ) => {
+    const fromStop = truck.nextStops[fromIndex];
+    if (!fromStop || isStopLocked(fromStop)) return;
+
+    const { rect } = initial;
+    const offsetX = initial.clientX - rect.left;
+    const offsetY = initial.clientY - rect.top;
+
+    dragStateRef.current = {
+      fromIndex,
+      offsetX,
+      offsetY,
+      width: rect.width,
+      height: rect.height,
+      lastX: initial.clientX,
+      lastT: performance.now(),
+      currentTilt: 0,
+    };
+
+    setDragFromIndex(fromIndex);
+    setDragOverIndex(fromIndex);
+    setDragGhost({
+      width: rect.width,
+      height: rect.height,
+      x: rect.left,
+      y: rect.top,
+      tilt: 0,
+      originX: offsetX,
+      originY: offsetY,
+    });
+
+    const prevUserSelect = document.body.style.userSelect;
+    const prevCursor = document.body.style.cursor;
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "grabbing";
+
+    const onMove = (e: PointerEvent) => {
+      const state = dragStateRef.current;
+      if (!state) return;
+      const now = performance.now();
+      const dt = Math.max(1, now - state.lastT);
+      const vx = (e.clientX - state.lastX) / dt;
+      const target = Math.max(-16, Math.min(16, vx * 7));
+      const smoothed = state.currentTilt * 0.55 + target * 0.45;
+      state.currentTilt = smoothed;
+      state.lastX = e.clientX;
+      state.lastT = now;
+
+      setDragGhost({
+        width: state.width,
+        height: state.height,
+        x: e.clientX - state.offsetX,
+        y: e.clientY - state.offsetY,
+        tilt: smoothed,
+        originX: state.offsetX,
+        originY: state.offsetY,
+      });
+
+      // Find the stop currently under the cursor (ignoring the ghost since
+      // the ghost has pointer-events: none).
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const hoveredLi =
+        (el as HTMLElement | null)?.closest("[data-stop-index]") ??
+        null;
+      const raw = (hoveredLi as HTMLElement | null)?.dataset.stopIndex;
+      if (raw != null) {
+        const toIdx = Number(raw);
+        if (!Number.isNaN(toIdx)) setDragOverIndex(toIdx);
+      }
+    };
+
+    const finish = (e: PointerEvent | null, commit: boolean) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      document.body.style.userSelect = prevUserSelect;
+      document.body.style.cursor = prevCursor;
+
+      const state = dragStateRef.current;
+      dragStateRef.current = null;
+      setDragGhost(null);
+
+      if (commit && state && e) {
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const targetLi =
+          (el as HTMLElement | null)?.closest("[data-stop-index]") ?? null;
+        const raw = (targetLi as HTMLElement | null)?.dataset.stopIndex;
+        if (raw != null) {
+          const toIdx = Number(raw);
+          if (!Number.isNaN(toIdx)) {
+            performReorder(state.fromIndex, toIdx);
+          }
+        }
+      }
       setDragFromIndex(null);
       setDragOverIndex(null);
-      return;
-    }
+    };
 
-    onReorderStop?.(truck.id, dragFromIndex, toIndex);
-    setDragFromIndex(null);
-    setDragOverIndex(null);
+    const onUp = (e: PointerEvent) => finish(e, true);
+    const onCancel = () => finish(null, false);
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
   };
 
   const startAddStop = () => {
@@ -552,11 +753,22 @@ export function TruckDetailDrawer({
             </div>
           ) : null}
           {isEditingStops ? (
-            <div className="tt-drawer__inline-note" style={{ marginBottom: 10 }}>
-              Tu peux deplacer les etapes en les glissant par la poignee ::: a gauche.
+            <div className="tt-drawer__reorder-hint">
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden fill="currentColor">
+                <circle cx="9" cy="6" r="1.4" />
+                <circle cx="15" cy="6" r="1.4" />
+                <circle cx="9" cy="12" r="1.4" />
+                <circle cx="15" cy="12" r="1.4" />
+                <circle cx="9" cy="18" r="1.4" />
+                <circle cx="15" cy="18" r="1.4" />
+              </svg>
+              <span>Glissez la poignée à gauche d&apos;une étape pour la réordonner.</span>
             </div>
           ) : null}
-          <ol className="tt-drawer__stops">
+          <ol
+            className="tt-drawer__stops"
+            data-editing={isEditingStops || undefined}
+          >
             <StopRow stop={truck.origin} index={-1} done />
             {truck.nextStops.map((stop, i) => (
               <StopRow
@@ -570,20 +782,26 @@ export function TruckDetailDrawer({
                 canDrag={isEditingStops && !isStopLocked(stop)}
                 onEdit={() => startEditStop(i)}
                 onDelete={() => onDeleteStop?.(truck.id, i)}
-                onDragStart={() => {
-                  setDragFromIndex(i);
-                  setDragOverIndex(i);
-                }}
-                onDragOver={(e) => {
-                  if (!isEditingStops || isStopLocked(stop) || dragFromIndex === null) return;
-                  e.preventDefault();
-                  setDragOverIndex(i);
-                }}
-                onDrop={() => handleDropReorder(i)}
+                onBeginDrag={(initial) => handleBeginDrag(i, initial)}
                 dragActive={dragOverIndex === i && dragFromIndex !== null && dragFromIndex !== i}
+                isDragging={dragFromIndex === i}
               />
             ))}
           </ol>
+          {dragGhost && dragFromIndex !== null && truck.nextStops[dragFromIndex] ? (
+            <DragGhost
+              stop={truck.nextStops[dragFromIndex]}
+              index={dragFromIndex}
+              done={!!truck.nextStops[dragFromIndex].completedAt}
+              width={dragGhost.width}
+              height={dragGhost.height}
+              x={dragGhost.x}
+              y={dragGhost.y}
+              tilt={dragGhost.tilt}
+              originX={dragGhost.originX}
+              originY={dragGhost.originY}
+            />
+          ) : null}
         </section>
 
         <footer className="tt-drawer__foot">
