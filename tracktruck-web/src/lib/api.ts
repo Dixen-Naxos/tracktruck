@@ -1,7 +1,7 @@
 // API client stubs. Replace with real fetch calls; keep the function signatures stable
 // so the UI doesn't need to change.
 
-import type { Driver } from "./types";
+import type {DashcamVideo, Driver} from "./types";
 import { DRIVERS } from "./data";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
