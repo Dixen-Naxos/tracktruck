@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { ObjectId } from "mongodb";
-import { client, connect, disconnect, db } from "./db/config.js";
+import { client, connect, disconnect } from "./db/config.js";
 import { stores } from "./db/Store.js";
 import { warehouses } from "./db/Warehouse.js";
 import { trucks } from "./db/Truck.js";
@@ -28,20 +28,65 @@ async function seed() {
 
   // --- Warehouses ---
   const warehouseDocs = [
-    { _id: new ObjectId(), name: "Entrepôt Paris Nord", address: "12 Rue de la Logistique, 93200 Saint-Denis" },
-    { _id: new ObjectId(), name: "Entrepôt Lyon Sud", address: "45 Avenue des Transports, 69007 Lyon" },
-    { _id: new ObjectId(), name: "Entrepôt Marseille", address: "8 Boulevard du Port, 13002 Marseille" },
+    {
+      _id: new ObjectId(),
+      name: "Entrepôt Paris Nord",
+      address: "50 Avenue du Président Wilson, 93210 Saint-Denis",
+      location: { lat: 48.917, lng: 2.36 },
+    },
+    {
+      _id: new ObjectId(),
+      name: "Entrepôt Lyon Sud",
+      address: "112 Avenue Jean Jaurès, 69007 Lyon",
+      location: { lat: 45.733, lng: 4.835 },
+    },
+    {
+      _id: new ObjectId(),
+      name: "Entrepôt Marseille",
+      address: "23 Rue Mazenod, 13002 Marseille",
+      location: { lat: 43.302, lng: 5.37 },
+    },
   ];
   await warehouses.insertMany(warehouseDocs);
 
   // --- Stores ---
   const storeDocs = [
-    { _id: new ObjectId(), name: "Supérette Bastille", address: "3 Place de la Bastille, 75011 Paris" },
-    { _id: new ObjectId(), name: "Supérette Montmartre", address: "22 Rue des Abbesses, 75018 Paris" },
-    { _id: new ObjectId(), name: "Supérette République", address: "10 Place de la République, 75003 Paris" },
-    { _id: new ObjectId(), name: "Supérette Part-Dieu", address: "5 Rue Garibaldi, 69003 Lyon" },
-    { _id: new ObjectId(), name: "Supérette Vieux-Port", address: "1 Quai du Port, 13002 Marseille" },
-    { _id: new ObjectId(), name: "Supérette Canebière", address: "50 La Canebière, 13001 Marseille" },
+    {
+      _id: new ObjectId(),
+      name: "Supérette Bastille",
+      address: "5 Place de la Bastille, 75004 Paris",
+      location: { lat: 48.853, lng: 2.369 },
+    },
+    {
+      _id: new ObjectId(),
+      name: "Supérette Montmartre",
+      address: "30 Rue des Abbesses, 75018 Paris",
+      location: { lat: 48.884, lng: 2.338 },
+    },
+    {
+      _id: new ObjectId(),
+      name: "Supérette République",
+      address: "16 Place de la République, 75010 Paris",
+      location: { lat: 48.867, lng: 2.363 },
+    },
+    {
+      _id: new ObjectId(),
+      name: "Supérette Part-Dieu",
+      address: "17 Rue Garibaldi, 69003 Lyon",
+      location: { lat: 45.761, lng: 4.859 },
+    },
+    {
+      _id: new ObjectId(),
+      name: "Supérette Vieux-Port",
+      address: "2 Quai du Port, 13002 Marseille",
+      location: { lat: 43.296, lng: 5.37 },
+    },
+    {
+      _id: new ObjectId(),
+      name: "Supérette Canebière",
+      address: "80 La Canebière, 13001 Marseille",
+      location: { lat: 43.2965, lng: 5.379 },
+    },
   ];
   await stores.insertMany(storeDocs);
 
@@ -93,17 +138,26 @@ async function seed() {
   const hours = (h: number) => new Date(now + h * 3600_000);
 
   const deliveryDocs = [
+    // Planned (Paris)
     {
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[0]._id,
-      storeIds: [storeDocs[0]._id, storeDocs[1]._id, storeDocs[2]._id],
+      truckId: truckDocs[0]._id,
+      storeIds: [
+        storeDocs[0]._id,
+        storeDocs[1]._id,
+        storeDocs[2]._id,
+      ],
       plannedStartAt: hours(24),
       storeArrivals: [],
       status: "planned" as const,
     },
+
+    // Started (Lyon)
     {
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[1]._id,
+      truckId: truckDocs[1]._id,
       storeIds: [storeDocs[3]._id],
       plannedStartAt: hours(-2),
       actualStartAt: hours(-1.5),
@@ -111,15 +165,21 @@ async function seed() {
       status: "started" as const,
       itinerary: [
         {
-          start: { lat: 45.7485, lng: 4.8467 },
-          end: { lat: 45.7606, lng: 4.8547 },
+          start: warehouseDocs[1].location,
+          end: storeDocs[3].location,
         },
       ],
     },
+
+    // Done (Marseille)
     {
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[2]._id,
-      storeIds: [storeDocs[4]._id, storeDocs[5]._id],
+      truckId: truckDocs[2]._id,
+      storeIds: [
+        storeDocs[4]._id,
+        storeDocs[5]._id,
+      ],
       plannedStartAt: hours(-48),
       actualStartAt: hours(-47),
       storeArrivals: [
@@ -131,19 +191,24 @@ async function seed() {
   ];
   await deliveries.insertMany(deliveryDocs);
 
-  // --- Truck position traces (for the started delivery) ---
+  // --- Truck position traces (Lyon delivery) ---
   const startedDelivery = deliveryDocs[1];
   const movingTruck = truckDocs[1];
-  const traceDocs = Array.from({ length: 5 }, (_, i) => ({
+
+  const baseLat = warehouseDocs[1].location.lat;
+  const baseLng = warehouseDocs[1].location.lng;
+
+  const traceDocs = Array.from({ length: 6 }, (_, i) => ({
     _id: new ObjectId(),
     truckId: movingTruck._id,
     deliveryId: startedDelivery._id,
     position: {
-      lat: 45.7485 + i * 0.0025,
-      lng: 4.8467 + i * 0.002,
+      lat: baseLat + i * 0.002,
+      lng: baseLng + i * 0.002,
     },
-    timestamp: new Date(now - (5 - i) * 60_000),
+    timestamp: new Date(now - (6 - i) * 60_000),
   }));
+
   await truckPositionTraces.insertMany(traceDocs);
 
   console.log("Seed complete:");
