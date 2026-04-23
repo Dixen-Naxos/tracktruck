@@ -19,6 +19,7 @@ export type Delivery = {
   actualStartAt?: Date;
   storeArrivals: StoreArrival[];
   status: DeliveryStatus;
+  truckId?: ObjectId;
 };
 
 export const deliveries = db.collection<Delivery>("deliveries");

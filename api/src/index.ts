@@ -15,6 +15,7 @@ import { warehousesRoute } from "./routes/warehouses.js";
 import { storesRoute } from "./routes/stores.js";
 import { itinerariesRoute } from "./routes/itineraries.js";
 import { deliveriesRoute } from "./routes/deliveries.js";
+import { cors } from "hono/cors";
 
 const app = new Hono<AuthEnv>()
   .use("*", cors())

@@ -11,6 +11,7 @@
     "@hono/node-server": "^1.19.14",
     "@hono/standard-validator": "^0.2.2",
     "@hono/swagger-ui": "^0.6.1",
+    "@hono/zod-validator": "^0.7.6",
     "dotenv": "^17.4.2",
     "firebase-admin": "^13.0.0",
     "hono": "^4.12.14",

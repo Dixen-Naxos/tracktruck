@@ -1,5 +1,5 @@
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { describeRoute, validator } from "hono-openapi";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { requireAuth, requireRole, type AuthEnv } from "../auth/middleware.js";
@@ -21,16 +21,35 @@ const videoIdParamSchema = z.object({
 });
 
 export const videosRoute = new Hono<AuthEnv>()
-    .get("/", zValidator("query", listQuerySchema), async (c) => {
-        const { from, to } = c.req.valid("query");
-        const videos = await listDashcamVideos(from, to);
-        return c.json(videos);
-    })
+    .get(
+        "/",
+        describeRoute({
+            summary: "List dashcam videos",
+            tags: ["Videos"],
+            responses: { 200: { description: "List of dashcam videos" } },
+        }),
+        validator("query", listQuerySchema),
+        async (c) => {
+            const { from, to } = c.req.valid("query");
+            const videos = await listDashcamVideos(from, to);
+            return c.json(videos);
+        },
+    )
     .post(
         "/upload-url",
         requireAuth,
         requireRole("driver"),
-        zValidator("json", uploadUrlSchema),
+        describeRoute({
+            summary: "Get a signed upload URL for a dashcam video",
+            tags: ["Videos"],
+            security: [{ bearerAuth: [] }],
+            responses: {
+                200: { description: "Signed upload URL" },
+                401: { description: "Unauthorized" },
+                403: { description: "Forbidden" },
+            },
+        }),
+        validator("json", uploadUrlSchema),
         async (c) => {
             const { timestamp } = c.req.valid("json");
             const driver = c.get("user");
@@ -40,7 +59,15 @@ export const videosRoute = new Hono<AuthEnv>()
     )
     .get(
         "/:videoId/download-url",
-        zValidator("param", videoIdParamSchema),
+        describeRoute({
+            summary: "Get a signed download URL for a dashcam video",
+            tags: ["Videos"],
+            responses: {
+                200: { description: "Signed download URL" },
+                404: { description: "Video not found" },
+            },
+        }),
+        validator("param", videoIdParamSchema),
         async (c) => {
             const { videoId } = c.req.valid("param");
             const result = await getDashcamVideoDownloadUrl(new ObjectId(videoId));

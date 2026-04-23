@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import { HTTPException } from "hono/http-exception";
-import { type IntineraryStep } from "../../db/Delivery.js";
+type IntineraryStep = { start: { lat: number; lng: number }; end: { lat: number; lng: number } };
 import { stores } from "../../db/Store.js";
 import { warehouses } from "../../db/Warehouse.js";
 

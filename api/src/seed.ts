@@ -95,9 +95,9 @@ async function seed() {
 
   // --- Trucks ---
   const truckDocs = [
-    { _id: new ObjectId(), plateNumber: "AB-123-CD", packageCapacity: 120 },
-    { _id: new ObjectId(), plateNumber: "EF-456-GH", packageCapacity: 80 },
-    { _id: new ObjectId(), plateNumber: "IJ-789-KL", packageCapacity: 200 },
+    { _id: new ObjectId(), plateNumber: "AB-123-CD", packageCapacity: 120, fuelType: "diesel" as const, fuelConsumptionL100km: 28.5 },
+    { _id: new ObjectId(), plateNumber: "EF-456-GH", packageCapacity: 80,  fuelType: "diesel" as const, fuelConsumptionL100km: 24.0 },
+    { _id: new ObjectId(), plateNumber: "IJ-789-KL", packageCapacity: 200, fuelType: "essence" as const, fuelConsumptionL100km: 18.5 },
   ];
   await trucks.insertMany(truckDocs);
 
