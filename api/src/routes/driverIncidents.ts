@@ -35,7 +35,7 @@ const listIncidentsQuerySchema = z.object({
 export const driverIncidentsRoute = new Hono<AuthEnv>()
   .use("*", requireAuth, requireRole("driver", "admin"))
   .get(
-    "/incidents",
+    "/",
     requireRole("admin"),
     validator("query", listIncidentsQuerySchema),
     async (c) => {
@@ -43,7 +43,7 @@ export const driverIncidentsRoute = new Hono<AuthEnv>()
       return c.json(incidents);
     },
   )
-  .post("/incidents", validator("json", createIncidentSchema), async (c) => {
+  .post("/", validator("json", createIncidentSchema), async (c) => {
     const driver = c.get("user");
     const incident = await createIncident(driver._id, c.req.valid("json"));
     return c.json(incident, 201);

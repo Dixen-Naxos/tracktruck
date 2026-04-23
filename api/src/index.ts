@@ -9,6 +9,7 @@ import type { AuthEnv } from "./auth/middleware.js";
 import { adminsRoutes } from "./routes/admins.js";
 import { videosRoute } from "./routes/videos.js";
 import { driversRoute } from "./routes/drivers.js";
+import { driverPositionsRoute } from "./routes/driverPositions.js";
 import { driverIncidentsRoute } from "./routes/driverIncidents.js";
 import { warehousesRoute } from "./routes/warehouses.js";
 import { storesRoute } from "./routes/stores.js";
@@ -18,6 +19,7 @@ const app = new Hono<AuthEnv>()
   .route("/admins", adminsRoutes)
   .route("/videos", videosRoute)
   .route("/drivers", driversRoute)
+  .route("/drivers", driverPositionsRoute)
   .route("/incidents", driverIncidentsRoute)
   .route("/warehouses", warehousesRoute)
   .route("/stores", storesRoute);
