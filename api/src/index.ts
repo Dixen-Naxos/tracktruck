@@ -4,8 +4,11 @@ import { connect } from "./db/config.js";
 import { ensureUserIndexes } from "./db/User.js";
 import type { AuthEnv } from "./auth/middleware.js";
 import { RegExpRouter } from "hono/router/reg-exp-router";
+import { adminsRoutes } from "./routes/admins.js";
 
-const app = new Hono<AuthEnv>().get("/", (c) => c.text("Hello Hono!"));
+const app = new Hono<AuthEnv>()
+  .get("/", (c) => c.text("Hello Hono!"))
+  .route("/admins", adminsRoutes);
 
 async function main() {
   await connect();
