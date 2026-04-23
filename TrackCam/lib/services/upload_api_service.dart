@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:track_cam/config.dart';
 
@@ -11,16 +12,15 @@ class UploadApiService {
       : _dio = dio ??
             Dio(BaseOptions(
               connectTimeout: const Duration(seconds: 30),
-              // No receive timeout — large uploads can take a while
               receiveTimeout: const Duration(minutes: 10),
             ));
 
-  /// Uploads a video file directly to the backend API as multipart form data.
-  /// The backend is responsible for transferring it to GCS.
+  /// 1. Requests a signed GCS upload URL from the API.
+  /// 2. Uploads the file directly to GCS via the signed URL.
   /// Calls [onProgress] with (bytesSent, totalBytes).
   Future<void> uploadFile({
     required String filePath,
-    required String objectName,
+    required DateTime timestamp,
     void Function(int bytesSent, int totalBytes)? onProgress,
     CancelToken? cancelToken,
   }) async {
@@ -29,20 +29,36 @@ class UploadApiService {
       throw Exception('File not found: $filePath');
     }
 
-    final formData = FormData.fromMap({
-      'objectName': objectName,
-      'file': await MultipartFile.fromFile(
-        filePath,
-        contentType: DioMediaType('video', 'mp4'),
-      ),
-    });
+    // Step 1 — get a signed upload URL from the API
+    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (token == null) throw Exception('User not authenticated');
 
-    await _dio.post(
-      '${AppConfig.apiBaseUrl}/upload',
-      data: formData,
-      onSendProgress: (sent, total) {
-        onProgress?.call(sent, total);
-      },
+    final response = await _dio.post(
+      '${AppConfig.apiBaseUrl}/videos/upload-url',
+      data: {'timestamp': timestamp.toUtc().toIso8601String()},
+      options: Options(
+        headers: {'Authorization': 'Bearer $token'},
+        contentType: 'application/json',
+      ),
+      cancelToken: cancelToken,
+    );
+
+    final uploadUrl = response.data['uploadUrl'] as String;
+    final contentType = response.data['contentType'] as String;
+
+    // Step 2 — upload file bytes directly to GCS
+    final fileLength = await file.length();
+
+    await _dio.put(
+      uploadUrl,
+      data: file.openRead(),
+      options: Options(
+        headers: {
+          Headers.contentTypeHeader: contentType,
+          Headers.contentLengthHeader: fileLength,
+        },
+      ),
+      onSendProgress: (sent, total) => onProgress?.call(sent, total),
       cancelToken: cancelToken,
     );
   }
