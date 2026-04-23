@@ -1,33 +1,61 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:truck_map/blocs/auth_bloc/auth_bloc.dart';
 import 'package:truck_map/blocs/itinerary_bloc/itinerary_bloc.dart';
 import 'package:truck_map/blocs/location_bloc/location_bloc.dart';
+import 'package:truck_map/firebase_options.dart';
 import 'package:truck_map/repositories/itinerary_data_source/remote_itinerary_data_source.dart';
 import 'package:truck_map/repositories/itinerary_repository.dart';
-import 'package:truck_map/screens/map/map_screen.dart';
+import 'package:truck_map/screens/auth/auth_gate.dart';
+import 'package:truck_map/services/auth_http_client.dart';
+import 'package:truck_map/services/auth_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  final authService = AuthService();
+  final httpClient = AuthHttpClient(authService: authService);
 
   final itineraryRepository = ItineraryRepository(
-    dataSource: RemoteItineraryDataSource(),
+    dataSource: RemoteItineraryDataSource(client: httpClient),
   );
 
-  runApp(TruckMap(itineraryRepository: itineraryRepository));
+  runApp(TruckMap(
+    authService: authService,
+    httpClient: httpClient,
+    itineraryRepository: itineraryRepository,
+  ));
 }
 
 class TruckMap extends StatelessWidget {
+  final AuthService authService;
+  final AuthHttpClient httpClient;
   final ItineraryRepository itineraryRepository;
 
-  const TruckMap({super.key, required this.itineraryRepository});
+  const TruckMap({
+    super.key,
+    required this.authService,
+    required this.httpClient,
+    required this.itineraryRepository,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return RepositoryProvider.value(
-      value: itineraryRepository,
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: authService),
+        RepositoryProvider.value(value: httpClient),
+        RepositoryProvider.value(value: itineraryRepository),
+      ],
       child: MultiBlocProvider(
         providers: [
+          BlocProvider(
+            create: (_) =>
+                AuthBloc(authService: authService)..add(AuthStarted()),
+          ),
           BlocProvider(
             create: (_) =>
                 ItineraryBloc(itineraryRepository: itineraryRepository),
@@ -43,7 +71,7 @@ class TruckMap extends StatelessWidget {
             colorSchemeSeed: Colors.blue,
             useMaterial3: true,
           ),
-          home: const MapScreen(),
+          home: const AuthGate(),
         ),
       ),
     );
