@@ -14,7 +14,6 @@ export type ComputeItineraryInput = {
 };
 
 export type ComputeItineraryResult = {
-  points: { lat: number; lng: number }[];
   totalDistanceKilometers: number;
   totalDurationSeconds: number;
   orderedAddresses: string[];
@@ -53,7 +52,7 @@ export async function computeItinerary(
       "Content-Type": "application/json",
       "X-Goog-Api-Key": apiKey,
       "X-Goog-FieldMask":
-          "routes.legs.startLocation,routes.legs.endLocation,routes.legs.distanceMeters,routes.legs.duration,routes.optimizedIntermediateWaypointIndex",
+          "routes.legs.distanceMeters,routes.legs.duration,routes.optimizedIntermediateWaypointIndex",
     },
     body: JSON.stringify({
       origin: { address: startAddress },
@@ -77,8 +76,6 @@ export async function computeItinerary(
   const data = await res.json() as {
     routes?: Array<{
       legs: Array<{
-        startLocation: { latLng: { latitude: number; longitude: number } };
-        endLocation: { latLng: { latitude: number; longitude: number } };
         distanceMeters: number;
         duration: string; // ex: "123s"
       }>;
@@ -92,20 +89,6 @@ export async function computeItinerary(
       message: "No route returned by Google",
     });
   }
-
-  const points = route.legs.flatMap((leg, index) => {
-    const start = {
-      lat: leg.startLocation.latLng.latitude,
-      lng: leg.startLocation.latLng.longitude,
-    };
-
-    const end = {
-      lat: leg.endLocation.latLng.latitude,
-      lng: leg.endLocation.latLng.longitude,
-    };
-
-    return index === 0 ? [start, end] : [end];
-  });
 
   const totalDistanceKilometers = route.legs.reduce(
       (sum, leg) => sum + (leg.distanceMeters || 0),
@@ -127,7 +110,6 @@ export async function computeItinerary(
     : toVisitIds;
 
   return {
-    points,
     totalDistanceKilometers,
     totalDurationSeconds,
     orderedAddresses,

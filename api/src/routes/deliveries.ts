@@ -28,6 +28,21 @@ export const deliveriesRoute = new Hono<AuthEnv>()
       description:
         "Computes the optimal itinerary via Google Routes API then persists the delivery. Returns 409 if an identical delivery already exists.",
       tags: ["Deliveries"],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            example: {
+              departureWarehouseId: "684a1f2e3c4b5d6e7f8a9b0c",
+              storeIds: [
+                "684a1f2e3c4b5d6e7f8a9b0d",
+                "684a1f2e3c4b5d6e7f8a9b0e",
+              ],
+              plannedStartAt: "2026-04-25T08:00:00.000Z",
+            },
+          },
+        },
+      },
       responses: {
         201: { description: "Delivery created" },
         404: { description: "Warehouse or store not found" },

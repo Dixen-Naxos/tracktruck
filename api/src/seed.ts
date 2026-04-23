@@ -151,17 +151,6 @@ async function seed() {
       plannedStartAt: hours(24),
       storeArrivals: [],
       status: "planned" as const,
-      itinerary: [
-        { start: { lat: 48.917, lng: 2.36 }, end: { lat: 48.853, lng: 2.369 } }, // Saint-Denis → Bastille
-        {
-          start: { lat: 48.853, lng: 2.369 },
-          end: { lat: 48.867, lng: 2.363 },
-        }, // Bastille → République
-        {
-          start: { lat: 48.867, lng: 2.363 },
-          end: { lat: 48.884, lng: 2.338 },
-        }, // République → Montmartre
-      ],
     },
 
     // Started – tournée Lyon depuis entrepôt Jean Jaurès
@@ -175,12 +164,6 @@ async function seed() {
       actualStartAt: hours(-1.5),
       storeArrivals: [],
       status: "started" as const,
-      itinerary: [
-        {
-          start: { lat: 45.733, lng: 4.835 },
-          end: { lat: 45.761, lng: 4.859 },
-        }, // Jean Jaurès → Part-Dieu
-      ],
     },
 
     // Done – tournée Marseille depuis entrepôt Mazenod
@@ -197,13 +180,6 @@ async function seed() {
         { storeId: storeDocs[5]._id, arrivedAt: hours(-46) },
       ],
       status: "done" as const,
-      itinerary: [
-        { start: { lat: 43.302, lng: 5.37 }, end: { lat: 43.296, lng: 5.37 } }, // Mazenod → Vieux-Port
-        {
-          start: { lat: 43.296, lng: 5.37 },
-          end: { lat: 43.2965, lng: 5.379 },
-        }, // Vieux-Port → Canebière
-      ],
     },
   ];
   await deliveries.insertMany(deliveryDocs);

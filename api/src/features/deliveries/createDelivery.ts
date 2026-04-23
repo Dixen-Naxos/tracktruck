@@ -12,7 +12,7 @@ export type CreateDeliveryInput = {
 
 export async function createDelivery(input: CreateDeliveryInput): Promise<Delivery> {
   const { departureWarehouseId, plannedStartAt, itineraryResult } = input;
-  const { orderedStopIds, totalDistanceKilometers, totalDurationSeconds, points } = itineraryResult;
+  const { orderedStopIds, totalDistanceKilometers, totalDurationSeconds } = itineraryResult;
 
   // Verify departure warehouse exists
   const warehouse = await warehouses.findOne({ _id: departureWarehouseId });
@@ -30,12 +30,6 @@ export async function createDelivery(input: CreateDeliveryInput): Promise<Delive
     });
   }
 
-  // Build itinerary steps from the points list
-  const itinerary = points.slice(0, -1).map((start, i) => ({
-    start,
-    end: points[i + 1],
-  }));
-
   const delivery: Delivery = {
     _id: new ObjectId(),
     departureWarehouseId,
@@ -45,7 +39,6 @@ export async function createDelivery(input: CreateDeliveryInput): Promise<Delive
     plannedStartAt,
     storeArrivals: [],
     status: "planned",
-    itinerary,
   };
 
   await deliveries.insertOne(delivery);
