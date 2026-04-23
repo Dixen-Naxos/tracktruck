@@ -16,7 +16,7 @@ const computeItinerarySchema = z.object({
 });
 
 export const itinerariesRoute = new Hono<AuthEnv>()
-  // .use("*", requireAuth, requireRole("admin", "driver"))
+  //.use("*", requireAuth, requireRole("admin", "driver"))
   .post("/compute", validator("json", computeItinerarySchema), async (c) => {
     const { startPointId, toVisitIds } = c.req.valid("json");
     const itinerary = await computeItinerary({ startPointId, toVisitIds });

@@ -11,6 +11,8 @@ import { videosRoute } from "./routes/videos.js";
 import { driversRoute } from "./routes/drivers.js";
 import { warehousesRoute } from "./routes/warehouses.js";
 import { storesRoute } from "./routes/stores.js";
+import { itinerariesRoute } from "./routes/itineraries.js";
+import { deliveriesRoute } from "./routes/deliveries.js";
 
 const app = new Hono<AuthEnv>()
   .get("/", (c) => c.text("Hello Hono!"))
@@ -18,7 +20,9 @@ const app = new Hono<AuthEnv>()
   .route("/videos", videosRoute)
   .route("/drivers", driversRoute)
   .route("/warehouses", warehousesRoute)
-  .route("/stores", storesRoute);
+  .route("/stores", storesRoute)
+  .route("/itineraries", itinerariesRoute)
+  .route("/deliveries", deliveriesRoute);
 
 app.get(
   "/openapi.json",

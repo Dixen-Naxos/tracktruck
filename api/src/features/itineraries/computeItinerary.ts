@@ -13,11 +13,13 @@ export type ComputeItineraryInput = {
   toVisitIds: ObjectId[];
 };
 
-type ComputeItineraryResult = {
+export type ComputeItineraryResult = {
   points: { lat: number; lng: number }[];
   totalDistanceKilometers: number;
   totalDurationSeconds: number;
   orderedAddresses: string[];
+  /** toVisitIds reordered to match the optimized visit order */
+  orderedStopIds: ObjectId[];
 };
 
 
@@ -115,18 +117,20 @@ export async function computeItinerary(
     return sum + (isNaN(seconds) ? 0 : seconds);
   }, 0);
 
-  let orderedAddresses = stopAddresses;
-
-  if (route.optimizedIntermediateWaypointIndex) {
-    orderedAddresses = route.optimizedIntermediateWaypointIndex.map(
-        (i) => stopAddresses[i],
-    );
-  }
+  // Apply Google's optimized order if provided, otherwise keep original order
+  const optimizedIndexes = route.optimizedIntermediateWaypointIndex;
+  const orderedAddresses = optimizedIndexes
+    ? optimizedIndexes.map((i) => stopAddresses[i])
+    : stopAddresses;
+  const orderedStopIds = optimizedIndexes
+    ? optimizedIndexes.map((i) => toVisitIds[i])
+    : toVisitIds;
 
   return {
     points,
     totalDistanceKilometers,
     totalDurationSeconds,
     orderedAddresses,
+    orderedStopIds,
   };
 }
