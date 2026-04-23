@@ -6,10 +6,12 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
-COPY tsconfig.json ./
-COPY src ./src
+COPY . .
+
+# .env is copied above — Next.js reads it automatically during build,
+# baking NEXT_PUBLIC_* vars into the JS bundle.
 RUN npm run build
 
 # ─────────────────────────────────────────────
@@ -20,16 +22,13 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+# Bind to all interfaces so Docker can route traffic to the container.
+ENV HOSTNAME=0.0.0.0
 
-COPY package*.json ./
-RUN npm ci --omit=dev
-
-COPY --from=builder /app/dist ./dist
-
-# firebase-service-account.json must be mounted at runtime, e.g.:
-#   docker run -v ./firebase-service-account.json:/app/firebase-service-account.json
-# or set FIREBASE_SERVICE_ACCOUNT to an absolute path via .env.
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
 EXPOSE 3000
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "server.js"]

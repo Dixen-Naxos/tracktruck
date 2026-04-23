@@ -11,6 +11,9 @@ export type DriverUser = UserBase & {
   role: "driver";
   firstName: string;
   lastName: string;
+  phone: string;
+  skills: string[];
+  zones: string[];
 };
 
 export type AdminUser = UserBase & {

@@ -2,6 +2,7 @@ import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { swaggerUI } from "@hono/swagger-ui";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { openAPIRouteHandler } from "hono-openapi";
 import { connect } from "./db/config.js";
 import { ensureUserIndexes } from "./db/User.js";
@@ -15,7 +16,8 @@ import { warehousesRoute } from "./routes/warehouses.js";
 import { storesRoute } from "./routes/stores.js";
 import { itinerariesRoute } from "./routes/itineraries.js";
 import { deliveriesRoute } from "./routes/deliveries.js";
-import { cors } from "hono/cors";
+import { seederRoute } from "./routes/seeder.js";
+import { startSytadinPolling } from "./features/incidents/fetchIncidents.js";
 
 const app = new Hono<AuthEnv>()
   .use("*", cors())
@@ -28,7 +30,8 @@ const app = new Hono<AuthEnv>()
   .route("/warehouses", warehousesRoute)
   .route("/stores", storesRoute)
   .route("/itineraries", itinerariesRoute)
-  .route("/deliveries", deliveriesRoute);
+  .route("/deliveries", deliveriesRoute)
+  .route("/seeder", seederRoute);
 
 app.get(
   "/openapi.json",
@@ -59,7 +62,11 @@ async function main() {
   await connect();
   await ensureUserIndexes();
 
-  serve(
+  startSytadinPolling().catch((error) => {
+    console.error("Error starting Sytadin polling:", error);
+  });
+
+  await serve(
     {
       fetch: app.fetch,
       port: 3000,

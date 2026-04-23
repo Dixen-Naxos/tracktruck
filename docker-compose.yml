@@ -34,6 +34,23 @@ services:
     depends_on:
       - db
 
+  web:
+    image: dixennaxos/tracktruck:front
+    build:
+      context: ./tracktruck-web
+    container_name: tracktruck-web
+    env_file: ./tracktruck-web/.env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tracktruck-web.rule=Host(`tracktruck.dixen.fr`)"
+      - "traefik.http.routers.tracktruck-web.entrypoints=websecure"
+      - "traefik.http.routers.tracktruck-web.tls.certresolver=myresolver"
+      - "traefik.docker.network=traefik"
+    networks:
+      - traefik
+    depends_on:
+      - api
+
 volumes:
   mongodb_data:
 
