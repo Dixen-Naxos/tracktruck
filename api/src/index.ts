@@ -18,6 +18,7 @@ import { storesRoute } from "./routes/stores.js";
 import { itinerariesRoute } from "./routes/itineraries.js";
 import { deliveriesRoute } from "./routes/deliveries.js";
 import { roadSignsRoute } from "./routes/roadSigns.js";
+import { ordersRoute } from "./routes/orders.js";
 import { seederRoute } from "./routes/seeder.js";
 import { startSytadinPolling } from "./features/incidents/fetchIncidents.js";
 import { cleanupOldVideos } from "./features/dashcam-videos/cleanupVideos.js";
@@ -38,6 +39,7 @@ const app = new Hono<AuthEnv>()
   .route("/itineraries", itinerariesRoute)
   .route("/deliveries", deliveriesRoute)
   .route("/road-signs", roadSignsRoute)
+  .route("/orders", ordersRoute)
   .route("/seeder", seederRoute);
 
 app.get(
