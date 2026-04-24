@@ -412,20 +412,15 @@ export function TruckDetailDrawer({
     }));
 
     const controller = new AbortController();
+    const geoBase = process.env.NEXT_PUBLIC_API ?? "http://localhost:3000";
 
     const runReverseGeocode = async () => {
       try {
         const [lat, lng] = mapClickPosition;
-        const url =
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1` +
-          `&lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lng))}`;
-
-        const response = await fetch(url, {
-          signal: controller.signal,
-          headers: {
-            Accept: "application/json",
-          },
-        });
+        const response = await fetch(
+          `${geoBase}/geocode/reverse?lat=${lat}&lon=${lng}`,
+          { signal: controller.signal },
+        );
 
         if (!response.ok) return;
         const payload = (await response.json()) as unknown;
@@ -442,9 +437,10 @@ export function TruckDetailDrawer({
       }
     };
 
-    void runReverseGeocode();
+    const timer = setTimeout(() => { void runReverseGeocode(); }, 500);
 
     return () => {
+      clearTimeout(timer);
       controller.abort();
     };
   }, [mapClickPosition, mapClickVersion]);

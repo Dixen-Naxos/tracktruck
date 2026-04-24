@@ -58,12 +58,11 @@ function toLocalInputValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+const GEO_BASE = process.env.NEXT_PUBLIC_API ?? "http://localhost:3000";
+
 async function reverseGeocode(lat: number, lng: number): Promise<{ name: string; address: string } | null> {
   try {
-    const url =
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1` +
-      `&lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lng))}`;
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const res = await fetch(`${GEO_BASE}/geocode/reverse?lat=${lat}&lon=${lng}`);
     if (!res.ok) return null;
     const data = (await res.json()) as {
       display_name?: string;
@@ -81,10 +80,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<{ name: string;
 
 async function geocodeAddress(address: string): Promise<ApiLatLng | null> {
   try {
-    const url =
-      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=` +
-      encodeURIComponent(address);
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const res = await fetch(`${GEO_BASE}/geocode/search?q=${encodeURIComponent(address)}`);
     if (!res.ok) return null;
     const arr = (await res.json()) as Array<{ lat: string; lon: string }>;
     const first = arr[0];

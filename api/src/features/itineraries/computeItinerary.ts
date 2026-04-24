@@ -125,9 +125,14 @@ export async function computeItinerary(
   }, 0);
 
   const optimizedIndexes = route.optimizedIntermediateWaypointIndex;
-  const orderedStops = optimizedIndexes
-    ? optimizedIndexes.map((i) => stops[i])
-    : stops;
+  // Google returns -1 when a waypoint index is already optimal (single stop, etc.).
+  // Fall back to original order whenever any index is invalid.
+  const orderedStops =
+    optimizedIndexes &&
+    optimizedIndexes.length === stops.length &&
+    optimizedIndexes.every((i) => i >= 0 && i < stops.length)
+      ? optimizedIndexes.map((i) => stops[i])
+      : stops;
 
   return {
     totalDistanceKilometers,

@@ -19,6 +19,7 @@ import { deliveriesRoute } from "./routes/deliveries.js";
 import { trucksRoute } from "./routes/trucks.js";
 import { seederRoute } from "./routes/seeder.js";
 import { startSytadinPolling } from "./features/incidents/fetchIncidents.js";
+import { geocodeRoute } from "./routes/geocode.js";
 
 const app = new Hono<AuthEnv>()
   .use("*", cors())
@@ -33,6 +34,7 @@ const app = new Hono<AuthEnv>()
   .route("/itineraries", itinerariesRoute)
   .route("/deliveries", deliveriesRoute)
   .route("/trucks", trucksRoute)
+  .route("/geocode", geocodeRoute)
   .route("/seeder", seederRoute);
 
 app.get(
