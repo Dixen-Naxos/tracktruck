@@ -31,6 +31,7 @@ export function Sidebar() {
     { id: "carte",        href: "/carte",        label: "Carte temps réel", icon: <Icon.map size={18}/> },
     { id: "chauffeurs",   href: "/chauffeurs",   label: "Chauffeurs",        icon: <Icon.users size={18}/> },
     { id: "commandes",    href: "/commandes",    label: "Commandes",         icon: <Icon.box size={18}/> },
+    { id: "camions",      href: "/camions",      label: "Camions",           icon: <Icon.truck size={18}/> },
     { id: "dashcam",      href: "/dashcam",      label: "Dashcam",           icon: <Icon.video size={18}/> },
     { id: "signalements", href: "/signalements", label: "Signalements",      icon: <Icon.alert size={18}/>, pulse: true },
   ];

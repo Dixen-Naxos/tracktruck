@@ -81,10 +81,21 @@ export interface ToastItem {
   msg: string;
 }
 
+export type FuelType = "diesel" | "essence" | "electrique" | "hybride" | "gpl";
+
+export interface Truck {
+  id: string;
+  plateNumber: string;
+  packageCapacity: number;
+  fuelType: FuelType;
+  fuelConsumptionL100km: number;
+}
+
 export type ViewKey =
   | "carte"
   | "chauffeurs"
   | "commandes"
+  | "camions"
   | "dashcam"
   | "signalements";
 

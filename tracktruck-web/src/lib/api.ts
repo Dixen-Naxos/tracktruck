@@ -1,7 +1,7 @@
 // API client stubs. Replace with real fetch calls; keep the function signatures stable
 // so the UI doesn't need to change.
 
-import type { DashcamVideo, Driver, DriverUser, Incident, IncidentType, Order } from "./types";
+import type { DashcamVideo, Driver, DriverUser, Incident, IncidentType, Order, Truck, FuelType } from "./types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API ?? "";
 
@@ -207,6 +207,34 @@ function _devStub<T>(method: Method, path: string, body?: unknown): T {
 
   throw new Error(`Dev stub: route not handled — ${method} ${path}`);
 }
+// ─── ApiTrucks ────────────────────────────────────────────────────────────────
+
+type ApiTruck = {
+  _id: string;
+  plateNumber: string;
+  packageCapacity: number;
+  fuelType: FuelType;
+  fuelConsumptionL100km: number | { $numberDecimal: string };
+};
+
+function toTruck(r: ApiTruck): Truck {
+  return {
+    id:                    r._id,
+    plateNumber:           r.plateNumber,
+    packageCapacity:       r.packageCapacity,
+    fuelType:              r.fuelType,
+    fuelConsumptionL100km: typeof r.fuelConsumptionL100km === "object"
+      ? parseFloat(r.fuelConsumptionL100km.$numberDecimal)
+      : r.fuelConsumptionL100km,
+  };
+}
+
+export const ApiTrucks = {
+  list:   async (): Promise<Truck[]> => (await request<ApiTruck[]>("GET", "/trucks")).map(toTruck),
+  create: async (input: { plateNumber: string; packageCapacity: number; fuelType: FuelType; fuelConsumptionL100km: number }): Promise<Truck> =>
+    toTruck(await request<ApiTruck>("POST", "/trucks", input)),
+};
+
 export function listDashcamVideos(
   from?: string,
   to?: string,
