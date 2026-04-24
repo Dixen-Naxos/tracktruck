@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import 'package:track_cam/blocs/camera_bloc/camera_bloc.dart';
 import 'package:track_cam/blocs/upload_bloc/upload_bloc.dart';
+import 'package:track_cam/models/upload_task.dart';
 import 'package:track_cam/models/video_segment.dart';
 import 'package:track_cam/widgets/upload_status_badge.dart';
 
@@ -63,7 +64,7 @@ class SegmentsScreen extends StatelessWidget {
 
 class _SegmentTile extends StatelessWidget {
   final VideoSegment segment;
-  final dynamic uploadTask;
+  final UploadTask? uploadTask;
 
   const _SegmentTile({required this.segment, this.uploadTask});
 
@@ -115,13 +116,13 @@ class _SegmentTile extends StatelessWidget {
           children: [
             UploadStatusBadge(task: uploadTask),
             if (uploadTask != null &&
-                uploadTask.status.name == 'failed' &&
-                uploadTask.canRetry)
+                uploadTask!.status == UploadStatus.failed &&
+                uploadTask!.canRetry)
               IconButton(
                 icon: const Icon(Icons.refresh, size: 18),
                 onPressed: () => context
                     .read<UploadBloc>()
-                    .add(RetryUpload(uploadTask.id!)),
+                    .add(RetryUpload(uploadTask!.id!)),
               ),
           ],
         ),

@@ -4,12 +4,11 @@ import type { GpsPosition } from "./GpsPosition.js";
 
 export type TruckPositionTrace = {
   _id: ObjectId;
-  truckId: ObjectId;
-  deliveryId: ObjectId;
+  driverId: ObjectId;
   position: GpsPosition;
   timestamp: Date;
 };
 
-export const truckPositionTrace = db.collection<TruckPositionTrace>(
+export const truckPositionTraces = db.collection<TruckPositionTrace>(
   "truckPositionTraces",
 );

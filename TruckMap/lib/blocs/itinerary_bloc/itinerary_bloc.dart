@@ -11,27 +11,32 @@ part 'itinerary_state.dart';
 class ItineraryBloc extends Bloc<ItineraryEvent, ItineraryState> {
   final ItineraryRepository itineraryRepository;
 
-  static const pollInterval = Duration(seconds: 15);
+  // Saved params for polling re-use
+  String? _lastStartPointId;
+  List<String>? _lastToVisitIds;
 
+  static const pollInterval = Duration(seconds: 30);
   Timer? _pollTimer;
 
   ItineraryBloc({required this.itineraryRepository})
       : super(const ItineraryState()) {
-    on<StartPolling>(_onStartPolling);
+    on<ComputeItinerary>(_onComputeItinerary);
     on<StopPolling>(_onStopPolling);
     on<_PollTick>(_onPollTick);
   }
 
-  Future<void> _onStartPolling(
-    StartPolling event,
+  Future<void> _onComputeItinerary(
+    ComputeItinerary event,
     Emitter<ItineraryState> emit,
   ) async {
-    await _fetchItinerary(emit);
+    _lastStartPointId = event.startPointId;
+    _lastToVisitIds = event.toVisitIds;
 
+    await _compute(emit);
+
+    // Poll every 30s to pick up server-side changes
     _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(pollInterval, (_) {
-      add(_PollTick());
-    });
+    _pollTimer = Timer.periodic(pollInterval, (_) => add(_PollTick()));
   }
 
   Future<void> _onStopPolling(
@@ -46,16 +51,19 @@ class ItineraryBloc extends Bloc<ItineraryEvent, ItineraryState> {
     _PollTick event,
     Emitter<ItineraryState> emit,
   ) async {
-    await _fetchItinerary(emit);
+    if (_lastStartPointId == null || _lastToVisitIds == null) return;
+    await _compute(emit);
   }
 
-  Future<void> _fetchItinerary(Emitter<ItineraryState> emit) async {
+  Future<void> _compute(Emitter<ItineraryState> emit) async {
     if (state.itinerary == null) {
       emit(state.copyWith(status: ItineraryStatus.loading));
     }
-
     try {
-      final itinerary = await itineraryRepository.fetchItinerary();
+      final itinerary = await itineraryRepository.computeItinerary(
+        startPointId: _lastStartPointId!,
+        toVisitIds: _lastToVisitIds!,
+      );
       emit(state.copyWith(
         status: ItineraryStatus.success,
         itinerary: itinerary,

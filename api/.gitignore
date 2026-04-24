@@ -11,7 +11,7 @@
 # deps
 node_modules/
 
-# env
+# ..env
 .env
 .env.production
 
@@ -26,3 +26,5 @@ lerna-debug.log*
 
 # misc
 .DS_Store
+
+tracktruck-*.json

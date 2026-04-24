@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import 'package:track_cam/blocs/auth_bloc/auth_bloc.dart';
 import 'package:track_cam/blocs/camera_bloc/camera_bloc.dart';
 import 'package:track_cam/blocs/upload_bloc/upload_bloc.dart';
 import 'package:track_cam/screens/segments/segments_screen.dart';
@@ -163,8 +164,12 @@ class _DashcamScreenState extends State<DashcamScreen>
                     // Record / Stop button
                     _buildRecordButton(cameraState),
 
-                    // Spacer for symmetry
-                    const SizedBox(width: 48),
+                    // Disconnect button
+                    IconButton(
+                      onPressed: () => _signOut(cameraState),
+                      icon: const Icon(Icons.logout,
+                          color: Colors.white, size: 32),
+                    ),
                   ],
                 ),
               ),
@@ -173,6 +178,13 @@ class _DashcamScreenState extends State<DashcamScreen>
         },
       ),
     );
+  }
+
+  void _signOut(CameraState cameraState) {
+    if (cameraState.isRecording) {
+      context.read<CameraBloc>().add(StopRecording());
+    }
+    context.read<AuthBloc>().add(AuthSignOutRequested());
   }
 
   Widget _buildCameraPreview(CameraState state) {

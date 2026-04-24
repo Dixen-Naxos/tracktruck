@@ -1,0 +1,1379 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: oklch(0.55 0.18 265);
+  --accent-soft: oklch(0.55 0.18 265 / 0.08);
+  --accent-softer: oklch(0.55 0.18 265 / 0.04);
+  --accent-ink: oklch(0.45 0.18 265);
+  --bg: oklch(0.985 0.003 95);
+  --surface: #ffffff;
+  --surface-2: oklch(0.975 0.003 95);
+  --ink-1: oklch(0.22 0.01 260);
+  --ink-2: oklch(0.42 0.008 260);
+  --ink-3: oklch(0.58 0.006 260);
+  --ink-4: oklch(0.72 0.005 260);
+  --line: oklch(0.22 0.01 260 / 0.08);
+  --line-strong: oklch(0.22 0.01 260 / 0.14);
+  --success: oklch(0.62 0.14 150);
+  --success-soft: oklch(0.62 0.14 150 / 0.1);
+  --warn: oklch(0.72 0.14 65);
+  --warn-soft: oklch(0.72 0.14 65 / 0.12);
+  --danger: oklch(0.58 0.2 25);
+  --danger-soft: oklch(0.58 0.2 25 / 0.1);
+  --shadow-sm: 0 1px 2px rgba(17, 20, 45, 0.04), 0 1px 1px rgba(17, 20, 45, 0.03);
+  --shadow-md: 0 4px 16px rgba(17, 20, 45, 0.06), 0 1px 2px rgba(17, 20, 45, 0.04);
+  --shadow-lg: 0 20px 60px rgba(17, 20, 45, 0.12), 0 2px 8px rgba(17, 20, 45, 0.06);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, system-ui, sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+
+[data-theme="dark"] {
+  --bg: oklch(0.18 0.008 260);
+  --surface: oklch(0.22 0.008 260);
+  --surface-2: oklch(0.25 0.008 260);
+  --ink-1: oklch(0.97 0.003 260);
+  --ink-2: oklch(0.82 0.006 260);
+  --ink-3: oklch(0.66 0.008 260);
+  --ink-4: oklch(0.5 0.008 260);
+  --line: oklch(0.97 0.003 260 / 0.08);
+  --line-strong: oklch(0.97 0.003 260 / 0.16);
+  --accent-soft: oklch(0.62 0.2 265 / 0.16);
+  --accent-softer: oklch(0.62 0.2 265 / 0.08);
+  --accent: oklch(0.7 0.18 265);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink-1);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.005em;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-4);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+@keyframes ttPulse {
+  0%   { box-shadow: 0 0 0 0 currentColor; opacity: 0.7; }
+  70%  { box-shadow: 0 0 0 8px transparent; opacity: 1; }
+  100% { opacity: 0.7; }
+}
+@keyframes ttToastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ttModalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes ttFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes ttRowIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tt-row-in   { animation: ttRowIn .35s cubic-bezier(.2,.8,.2,1) both; }
+.tt-fade-in  { animation: ttFadeIn .25s ease both; }
+.tt-modal-in { animation: ttModalIn .28s cubic-bezier(.2,.8,.2,1); }
+.tt-toast-in { animation: ttToastIn .28s cubic-bezier(.2,.8,.2,1); }
+.tt-hover-lift {
+  transition: transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease, border-color .2s ease;
+}
+.tt-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--line-strong);
+}
+.tt-pulse { animation: ttPulse 2s infinite; }
+
+/* ====================================================================== */
+/* /carte — Leaflet map + custom markers + side drawer                    */
+/* ====================================================================== */
+
+.tt-map-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.tt-carte-layout {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.tt-carte-map-wrap {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 560px;
+  height: auto;
+}
+
+.tt-carte-map-card {
+  display: flex;
+  flex-direction: column;
+  border-color: transparent !important;
+  min-height: 100%;
+}
+
+.tt-carte-filter-toggle {
+  border-color: var(--line-strong) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 16%, transparent);
+  min-height: 100%;
+}
+
+.tt-carte-filters__head span:last-child {
+  font-family: var(--font-mono);
+  color: var(--ink-1);
+  color: var(--ink-2);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.tt-carte-filters__row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: minmax(280px, 1.4fr) minmax(280px, 1.4fr) max-content max-content;
+  grid-auto-columns: max-content;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tt-carte-filters__row::-webkit-scrollbar {
+  display: none;
+}
+
+.tt-carte-filters__search {
+  min-width: 280px;
+}
+
+.tt-carte-filters__search label {
+  height: 44px;
+  border-radius: 12px;
+}
+
+.tt-carte-filters__search input {
+  font-size: 14px;
+}
+
+.tt-carte-filters__segment > div {
+  min-height: 40px;
+  padding: 4px;
+}
+
+.tt-carte-filters__segment > div > button {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+
+.tt-carte-filters__toggle {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 13px;
+  color: var(--ink-2);
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+.tt-carte-filters__toggle input {
+  width: 16px;
+  height: 16px;
+}
+
+.tt-carte-filters__reset {
+  min-width: 124px;
+  white-space: nowrap;
+}
+
+.tt-carte-filters__chips {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tt-carte-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--line));
+  background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+  color: var(--accent-ink);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.tt-carte-list-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  height: 560px;
+  overflow: hidden;
+}
+
+.tt-carte-list-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-bottom: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--accent) 6%, transparent), transparent 60%),
+    var(--surface);
+  flex: 0 0 auto;
+}
+
+.tt-carte-list-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink-1);
+}
+
+.tt-carte-list-head p {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.tt-carte-list-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 66px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.tt-carte-list-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.tt-carte-list-body::-webkit-scrollbar {
+  display: none;
+}
+
+.tt-carte-list-empty {
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  padding: 18px 14px;
+  color: var(--ink-3);
+  font-size: 12.5px;
+  text-align: center;
+  background: var(--surface-2);
+}
+
+.tt-carte-vehicle-item {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  padding: 11px 11px;
+  min-height: 116px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.tt-carte-vehicle-item:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.tt-carte-vehicle-item[data-selected] {
+  border-color: color-mix(in oklab, var(--accent) 35%, var(--line-strong));
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 16%, transparent);
+}
+
+.tt-carte-vehicle-item__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tt-carte-vehicle-item__plate {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tt-carte-vehicle-item__plate span {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-1);
+}
+
+.tt-carte-vehicle-item__status {
+  flex: none;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.tt-carte-vehicle-item__driver {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.tt-carte-vehicle-item__route {
+  font-size: 12px;
+  color: var(--ink-3);
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
+  min-height: calc(1.3em * 1);
+}
+
+.tt-carte-vehicle-item__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+}
+
+.tt-carte-page--focus {
+  padding-right: 420px;
+}
+
+.tt-carte-page--focus .tt-carte-kpis,
+.tt-carte-page--focus .tt-carte-list-card {
+  display: none;
+}
+
+.tt-carte-page--focus .tt-carte-layout {
+  grid-template-columns: 1fr;
+}
+
+.tt-carte-map-wrap--focus {
+  min-height: max(520px, calc(100vh - 180px));
+  height: 100%;
+}
+
+.tt-map {
+  width: 100%;
+  height: 100%;
+  background: var(--surface-2);
+  font: inherit;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.tt-map--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--ink-3);
+  font-size: 13px;
+  background: var(--surface-2);
+  border-radius: 14px;
+}
+
+.tt-map__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: tt-spin 0.7s linear infinite;
+}
+
+@keyframes tt-spin { to { transform: rotate(360deg); } }
+
+/* Make Leaflet honour our typography. */
+.leaflet-container {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--surface);
+  color: var(--ink-1);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--line);
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  width: auto \!important;
+}
+
+.leaflet-popup-close-button {
+  color: var(--ink-3) \!important;
+  font-size: 18px \!important;
+  padding: 6px 8px \!important;
+}
+
+/* ----- Truck marker (divIcon) --------------------------------------- */
+
+.tt-truck-icon { background: transparent; border: none; }
+
+.tt-truck {
+  position: relative;
+  width: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
+}
+
+.tt-truck__pin {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #ffffff;
+  transition: transform 0.18s cubic-bezier(.2,.8,.2,1);
+}
+
+.tt-truck--selected .tt-truck__pin {
+  transform: scale(1.18);
+  box-shadow: 0 0 0 4px color-mix(in oklab, currentColor 14%, transparent);
+}
+
+.tt-truck__heading {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  margin-left: -6px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid currentColor;
+  transform-origin: 50% 22px;
+  background: transparent \!important;
+}
+
+.tt-truck__plate {
+  margin-top: 4px;
+  padding: 1px 6px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+/* ----- Stop markers (warehouse / store / pickup / delivery) --------- */
+
+.tt-stop-icon { background: transparent; border: none; }
+
+.tt-stop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.18));
+}
+
+.tt-stop__pin {
+  width: 26px;
+  height: 26px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+}
+
+.tt-stop__pin > svg {
+  transform: rotate(45deg);
+}
+
+.tt-stop__label {
+  margin-top: 2px;
+  padding: 1px 5px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ----- Truck popup (inside Leaflet Popup) --------------------------- */
+
+.tt-popup-wrap .leaflet-popup-content-wrapper { padding: 0; border-radius: 12px; }
+
+.tt-popup {
+  padding: 14px 14px 12px;
+  min-width: 220px;
+  font-family: var(--font-sans);
+  color: var(--ink-1);
+}
+
+.tt-popup__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tt-popup__plate {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink-1);
+}
+
+.tt-popup__status {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.tt-popup__driver {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+.tt-popup__grid {
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+}
+
+.tt-popup__grid > div { min-width: 0; }
+
+.tt-popup__grid dt {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.tt-popup__grid dd {
+  margin: 1px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+.tt-popup__nextstop {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tt-popup__cta {
+  margin-top: 14px;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.tt-popup__cta:hover { filter: brightness(0.95); }
+
+/* ----- Truck row in side list -------------------------------------- */
+
+.tt-truck-row {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.tt-truck-row:hover { background: var(--surface-2); }
+
+.tt-truck-row[data-selected] {
+  background: var(--accent-soft);
+}
+
+/* ====================================================================== */
+/* Side drawer — truck details                                            */
+/* ====================================================================== */
+
+.tt-drawer__scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 17, 30, 0.32);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+  z-index: 90;
+}
+
+.tt-drawer__scrim[data-open] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tt-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 420px;
+  max-width: 100vw;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(.2,.8,.2,1);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tt-drawer[data-open] { transform: translateX(0); }
+
+.tt-drawer--split {
+  border-left-color: var(--line-strong);
+}
+
+@media (max-width: 1024px) {
+  .tt-carte-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .tt-carte-page--focus {
+    padding-right: 0;
+  }
+
+  .tt-carte-map-wrap--focus {
+    height: 560px;
+    min-height: 0;
+  }
+
+  .tt-carte-filters__head {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-bottom: 12px;
+  }
+
+  .tt-carte-filters__row {
+    grid-auto-flow: row;
+    grid-template-columns: 1fr;
+    overflow-x: visible;
+  }
+
+  .tt-carte-filters__search {
+    min-width: 0;
+  }
+}
+
+.tt-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tt-drawer__title { display: flex; align-items: center; gap: 10px; }
+
+.tt-drawer__plate {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.tt-drawer__status {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.tt-drawer__close {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.tt-drawer__close:hover {
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+}
+
+.tt-drawer__driver {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tt-drawer__driver-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+.tt-drawer__driver-meta {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+
+.tt-drawer__metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tt-drawer__metrics > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tt-drawer__metrics span {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.tt-drawer__metrics strong {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink-1);
+  font-feature-settings: "tnum";
+}
+
+.tt-drawer__alert {
+  margin: 12px 20px 0;
+  padding: 10px 12px;
+  background: var(--warn-soft);
+  color: oklch(0.42 0.14 65);
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.tt-drawer__section {
+  padding: 16px 20px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.tt-drawer__section h3 {
+  margin: 0 0 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+
+.tt-drawer__form {
+  margin: 0 0 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--accent) 20%, var(--line));
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--accent) 6%, var(--surface)) 0%, var(--surface) 100%);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.tt-drawer__form > * {
+  min-width: 0;
+}
+
+.tt-drawer__form-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tt-drawer__form-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tt-drawer__form-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+.tt-drawer__form-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-1);
+}
+
+.tt-drawer__form-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 9px;
+  padding: 8px 10px;
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  color: color-mix(in oklab, var(--accent-ink) 85%, var(--ink-2));
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.tt-drawer__form-tip svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.tt-drawer__input,
+.tt-drawer__select {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 9px;
+  border: 1px solid var(--line-strong);
+  background: #ffffff;
+  color: var(--ink-1);
+  font-size: 12.5px;
+  padding: 9px 10px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tt-drawer__input:focus,
+.tt-drawer__select:focus {
+  border-color: color-mix(in oklab, var(--accent) 44%, var(--line-strong));
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+
+.tt-drawer__form-row {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tt-drawer__form-row > * {
+  min-width: 0;
+}
+
+.tt-drawer__form-row--address,
+.tt-drawer__form-row--coords {
+  grid-template-columns: 1fr 1fr;
+}
+
+.tt-drawer__addr-preview {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 7px 9px;
+  border: 1px dashed var(--line-strong);
+}
+
+.tt-drawer__error {
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--danger) 9%, transparent);
+  border: 1px solid color-mix(in oklab, var(--danger) 28%, transparent);
+  color: color-mix(in oklab, var(--danger) 86%, black);
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.tt-drawer__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.tt-drawer__more--primary {
+  background: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 65%, var(--line-strong));
+  color: #ffffff;
+}
+
+.tt-drawer__more--primary:hover {
+  background: color-mix(in oklab, var(--accent) 85%, black);
+}
+
+.tt-drawer__stops {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.tt-drawer__stop {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 10px;
+  padding: 4px 0 14px;
+  position: relative;
+}
+
+.tt-drawer__stop-rail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.tt-drawer__stop-rail::after {
+  content: "";
+  position: absolute;
+  top: 22px;
+  bottom: -14px;
+  width: 2px;
+  background: var(--line-strong);
+}
+
+.tt-drawer__stop:last-child .tt-drawer__stop-rail::after { display: none; }
+
+.tt-drawer__stop[data-done] .tt-drawer__stop-rail::after {
+  background: color-mix(in oklab, var(--success) 60%, transparent);
+}
+
+.tt-drawer__stop-bullet {
+  position: relative;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--line-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.tt-drawer__stop[data-done] .tt-drawer__stop-bullet {
+  background: var(--success);
+  border-color: var(--success);
+  color: #ffffff;
+}
+
+.tt-drawer__stop[data-current] .tt-drawer__stop-bullet {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.tt-drawer__stop-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tt-drawer__stop-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+.tt-drawer__stop-eta {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  font-feature-settings: "tnum";
+}
+
+.tt-drawer__stop-addr {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: 1px;
+}
+
+.tt-drawer__stop-kind {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
+
+.tt-drawer__stop-kind[data-kind="warehouse"] { color: #0f172a; background: #f1f5f9; }
+.tt-drawer__stop-kind[data-kind="pickup"]    { color: #6d28d9; background: #f3e8ff; }
+.tt-drawer__stop-kind[data-kind="store"]     { color: #0e7490; background: #cffafe; }
+.tt-drawer__stop-kind[data-kind="delivery"]  { color: #15803d; background: #dcfce7; }
+
+.tt-drawer__foot {
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tt-drawer__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-ink);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  transition: background 0.15s;
+}
+
+.tt-drawer__more:hover { background: var(--accent-soft); }
+
+@media (max-width: 720px) {
+  .tt-drawer { width: 100vw; }
+  .tt-drawer__form {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .tt-drawer__form-row--address,
+  .tt-drawer__form-row--coords {
+    grid-template-columns: 1fr;
+  }
+
+  .tt-drawer__actions {
+    justify-content: stretch;
+  }
+
+  .tt-drawer__actions .tt-drawer__more {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* ---- Reorder / drag & drop of stops --------------------------------- */
+
+.tt-drawer__reorder-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.tt-drawer__reorder-hint svg {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+/* When editing, ALL stops (origin, past, upcoming) shift right to leave
+   room for a handle column — so rows stay aligned even when no handle
+   is rendered (locked / origin). */
+.tt-drawer__stops[data-editing] .tt-drawer__stop {
+  grid-template-columns: 28px 32px 1fr;
+  padding: 6px 6px 14px;
+  border-radius: 10px;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.tt-drawer__stops[data-editing] .tt-drawer__stop-rail {
+  grid-column: 2;
+}
+
+.tt-drawer__stops[data-editing] .tt-drawer__stop-body {
+  grid-column: 3;
+}
+
+.tt-drawer__stop[data-editing]:hover {
+  background: color-mix(in oklab, var(--accent) 5%, transparent);
+}
+
+.tt-drawer__drag-handle {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: grab;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.12s ease;
+  touch-action: none;
+}
+
+.tt-drawer__drag-handle:hover {
+  background: var(--surface-2);
+  color: var(--ink-1);
+  border-color: var(--line);
+}
+
+.tt-drawer__drag-handle:focus-visible {
+  outline: none;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+.tt-drawer__drag-handle:active {
+  cursor: grabbing;
+  transform: scale(0.94);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+/* Source row while dragging: keep a visible placeholder slot. */
+.tt-drawer__stop[data-dragging] {
+  opacity: 0.22;
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  border-radius: 12px;
+}
+
+/* The handle itself "clicks into" the grab pose on pickup. */
+.tt-drawer__stop[data-dragging] .tt-drawer__drag-handle {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+  cursor: grabbing;
+}
+
+/* Floating ghost follows pointer and tilts with mouse speed. */
+.tt-drawer__drag-ghost {
+  position: fixed;
+  z-index: 1200;
+  pointer-events: none;
+  display: grid;
+  grid-template-columns: 28px 32px 1fr;
+  gap: 10px;
+  padding: 6px 6px 14px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow:
+    0 20px 40px -12px color-mix(in oklab, var(--accent) 55%, transparent),
+    0 10px 22px -10px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px color-mix(in oklab, var(--accent) 35%, var(--line-strong));
+  transform:
+    translate3d(var(--tt-dx, 0px), var(--tt-dy, 0px), 0)
+    rotate(var(--tt-tilt, 0deg))
+    scale(1.03);
+  transform-origin: var(--tt-origin-x, 22px) var(--tt-origin-y, 50%);
+  transition: transform 0.055s linear;
+  will-change: transform;
+}
+
+.tt-drawer__drag-ghost .tt-drawer__stop-rail {
+  grid-column: 2;
+}
+
+.tt-drawer__drag-ghost .tt-drawer__stop-body {
+  grid-column: 3;
+}
+
+.tt-drawer__drag-ghost-handle {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+/* Drop target — show a clear insertion line at the top of the row. */
+.tt-drawer__stop--drag-over {
+  position: relative;
+}
+
+.tt-drawer__stop--drag-over::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: -2px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  pointer-events: none;
+}
+
+/* Locked (already completed) stops — dim the row a touch while editing. */
+.tt-drawer__stop[data-editing][data-done] {
+  opacity: 0.7;
+}
+
+.tt-drawer__locked-note {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.tt-drawer__stop-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.tt-drawer__more[data-danger] {
+  color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger) 30%, var(--line));
+}
+
+.tt-drawer__more[data-danger]:hover {
+  background: color-mix(in oklab, var(--danger) 10%, transparent);
+}

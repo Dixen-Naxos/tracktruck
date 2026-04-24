@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "403739322403",
+    "project_id": "tracktruck-494208",
+    "storage_bucket": "tracktruck-494208.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:403739322403:android:06d86e1340aa9c74d96996",
+        "android_client_info": {
+          "package_name": "com.example.track_cam"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "403739322403-kfsuk5d2jlaa0fq9id7q2q8gjikjlvd2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDrLcc6ucen-HrFjKHk2_wqJCRjcllomAA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "403739322403-kfsuk5d2jlaa0fq9id7q2q8gjikjlvd2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

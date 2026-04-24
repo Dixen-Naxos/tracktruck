@@ -1,0 +1,907 @@
+"use client";
+
+import * as React from "react";
+import { createPortal } from "react-dom";
+import {
+  STATUS_COLORS,
+  STATUS_LABELS,
+  type RouteStop,
+  type TruckLive,
+} from "@/lib/trucks-live";
+import { useRouteRemaining } from "@/hooks/use-route-remaining";
+
+interface Props {
+  truck: TruckLive | null;
+  open: boolean;
+  layout?: "overlay" | "split";
+  onClose: () => void;
+  onAddStop?: (
+    truckId: string,
+    values: {
+      name: string;
+      address: string;
+      kind: RouteStop["kind"];
+      position: [number, number];
+    },
+  ) => void;
+  onEditStop?: (
+    truckId: string,
+    stopIndex: number,
+    values: {
+      name: string;
+      address: string;
+      kind: RouteStop["kind"];
+      position: [number, number];
+    },
+  ) => void;
+  onDeleteStop?: (truckId: string, stopIndex: number) => void;
+  onReorderStop?: (truckId: string, fromIndex: number, toIndex: number) => void;
+  mapClickPosition?: [number, number] | null;
+  mapClickVersion?: number;
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatDistance(m: number | null): string {
+  if (m == null) return "—";
+  if (m < 1000) return `${m} m`;
+  return `${(m / 1000).toFixed(1)} km`;
+}
+
+function formatDuration(s: number | null): string {
+  if (s == null) return "—";
+  const h = Math.floor(s / 3600);
+  const m = Math.round((s % 3600) / 60);
+  if (h === 0) return `${m} min`;
+  return `${h} h ${String(m).padStart(2, "0")}`;
+}
+
+function isStopLocked(stop: RouteStop): boolean {
+  return !!stop.completedAt;
+}
+
+function splitAddress(address: string): { streetNumber: string; streetName: string } {
+  const trimmed = address.trim();
+  if (!trimmed) return { streetNumber: "", streetName: "" };
+
+  const match = trimmed.match(/^([0-9]+\s*[a-zA-Z]?\b)\s+(.*)$/);
+  if (!match) {
+    return { streetNumber: "", streetName: trimmed };
+  }
+
+  return {
+    streetNumber: match[1].trim(),
+    streetName: match[2].trim(),
+  };
+}
+
+function extractStreetPartsFromReverseGeocode(data: unknown): {
+  streetNumber: string;
+  streetName: string;
+} {
+  const payload =
+    data && typeof data === "object"
+      ? (data as {
+          address?: Record<string, unknown>;
+          name?: unknown;
+          display_name?: unknown;
+        })
+      : null;
+
+  const address = payload?.address ?? null;
+  const getText = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
+
+  const streetName =
+    getText(address?.road) ||
+    getText(address?.pedestrian) ||
+    getText(address?.footway) ||
+    getText(address?.path) ||
+    getText(address?.cycleway) ||
+    getText(address?.residential) ||
+    getText(address?.street) ||
+    getText(payload?.name) ||
+    getText(payload?.display_name).split(",")[0]?.trim() ||
+    "";
+
+  const streetNumber =
+    getText(address?.house_number) ||
+    getText(address?.street_number) ||
+    "";
+
+  return {
+    streetNumber,
+    streetName,
+  };
+}
+
+interface StopRowProps {
+  stop: RouteStop;
+  index: number;
+  done: boolean;
+  isCurrent?: boolean;
+  editingEnabled?: boolean;
+  canModify?: boolean;
+  canDrag?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onBeginDrag?: (initial: { clientX: number; clientY: number; rect: DOMRect }) => void;
+  dragActive?: boolean;
+  isDragging?: boolean;
+}
+
+function StopRow({
+  stop,
+  index,
+  done,
+  isCurrent,
+  editingEnabled,
+  canModify,
+  canDrag,
+  onEdit,
+  onDelete,
+  onBeginDrag,
+  dragActive,
+  isDragging,
+}: StopRowProps) {
+  const liRef = React.useRef<HTMLLIElement>(null);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!canDrag) return;
+    // Only left / primary pointer.
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = liRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    onBeginDrag?.({
+      clientX: e.clientX,
+      clientY: e.clientY,
+      rect,
+    });
+  };
+
+  return (
+    <li
+      ref={liRef}
+      className={`tt-drawer__stop ${dragActive ? "tt-drawer__stop--drag-over" : ""}`}
+      data-done={done || undefined}
+      data-current={isCurrent || undefined}
+      data-editing={editingEnabled || undefined}
+      data-dragging={isDragging || undefined}
+      data-stop-index={index >= 0 ? index : undefined}
+    >
+      {editingEnabled && canDrag ? (
+        <button
+          type="button"
+          aria-label="Déplacer l'étape"
+          title="Glisser pour réordonner"
+          onPointerDown={handlePointerDown}
+          className="tt-drawer__drag-handle"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden fill="currentColor">
+            <circle cx="9" cy="6" r="1.8" />
+            <circle cx="15" cy="6" r="1.8" />
+            <circle cx="9" cy="12" r="1.8" />
+            <circle cx="15" cy="12" r="1.8" />
+            <circle cx="9" cy="18" r="1.8" />
+            <circle cx="15" cy="18" r="1.8" />
+          </svg>
+        </button>
+      ) : null}
+      <div className="tt-drawer__stop-rail">
+        <span className="tt-drawer__stop-bullet">{done ? "✓" : index + 1}</span>
+      </div>
+      <div className="tt-drawer__stop-body">
+        <div className="tt-drawer__stop-head">
+          <span className="tt-drawer__stop-name">{stop.name}</span>
+          <span className="tt-drawer__stop-eta">
+            {done ? formatTime(stop.completedAt ?? stop.plannedAt) : formatTime(stop.plannedAt)}
+          </span>
+        </div>
+        <div className="tt-drawer__stop-addr">{stop.address}</div>
+        <div className="tt-drawer__stop-kind" data-kind={stop.kind}>
+          {KIND_LABEL[stop.kind]}
+        </div>
+        {editingEnabled ? (
+          canModify ? (
+            <div className="tt-drawer__stop-actions">
+              <button
+                type="button"
+                className="tt-drawer__more"
+                onClick={onEdit}
+              >
+                Modifier
+              </button>
+              <button
+                type="button"
+                className="tt-drawer__more"
+                data-danger
+                onClick={onDelete}
+              >
+                Supprimer
+              </button>
+            </div>
+          ) : (
+            <div className="tt-drawer__locked-note">
+              Etape passee verrouillee
+            </div>
+          )
+        ) : null}
+      </div>
+    </li>
+  );
+}
+
+/** Floating ghost clone of the dragged row, rendered to document.body so it
+ *  can move anywhere on screen, unaffected by any ancestor's overflow:hidden
+ *  or transform. */
+function DragGhost({
+  stop,
+  index,
+  done,
+  width,
+  height,
+  x,
+  y,
+  tilt,
+  originX,
+  originY,
+}: {
+  stop: RouteStop;
+  index: number;
+  done: boolean;
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+  tilt: number;
+  originX: number;
+  originY: number;
+}) {
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div
+      className="tt-drawer__drag-ghost"
+      style={
+        {
+          top: 0,
+          left: 0,
+          width,
+          height,
+          ["--tt-dx" as string]: `${x}px`,
+          ["--tt-dy" as string]: `${y}px`,
+          ["--tt-tilt" as string]: `${tilt.toFixed(2)}deg`,
+          ["--tt-origin-x" as string]: `${originX}px`,
+          ["--tt-origin-y" as string]: `${originY}px`,
+        } as React.CSSProperties
+      }
+    >
+      <div className="tt-drawer__drag-ghost-handle">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden fill="currentColor">
+          <circle cx="9" cy="6" r="1.8" />
+          <circle cx="15" cy="6" r="1.8" />
+          <circle cx="9" cy="12" r="1.8" />
+          <circle cx="15" cy="12" r="1.8" />
+          <circle cx="9" cy="18" r="1.8" />
+          <circle cx="15" cy="18" r="1.8" />
+        </svg>
+      </div>
+      <div className="tt-drawer__stop-rail">
+        <span className="tt-drawer__stop-bullet">{done ? "✓" : index + 1}</span>
+      </div>
+      <div className="tt-drawer__stop-body">
+        <div className="tt-drawer__stop-head">
+          <span className="tt-drawer__stop-name">{stop.name}</span>
+          <span className="tt-drawer__stop-eta">
+            {formatTime(done ? stop.completedAt ?? stop.plannedAt : stop.plannedAt)}
+          </span>
+        </div>
+        <div className="tt-drawer__stop-addr">{stop.address}</div>
+        <div className="tt-drawer__stop-kind" data-kind={stop.kind}>
+          {KIND_LABEL[stop.kind]}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+const KIND_LABEL: Record<RouteStop["kind"], string> = {
+  warehouse: "Entrepôt",
+  pickup: "Enlèvement",
+  store: "Magasin",
+  delivery: "Livraison",
+};
+
+export function TruckDetailDrawer({
+  truck,
+  open,
+  layout = "overlay",
+  onClose,
+  onAddStop,
+  onEditStop,
+  onDeleteStop,
+  onReorderStop,
+  mapClickPosition,
+  mapClickVersion,
+}: Props) {
+  const isOverlay = layout === "overlay";
+  const [isEditingStops, setIsEditingStops] = React.useState(false);
+  const [editingStopIndex, setEditingStopIndex] = React.useState<number | null>(null);
+  const [isAddingStop, setIsAddingStop] = React.useState(false);
+  const [formValues, setFormValues] = React.useState({
+    name: "",
+    streetNumber: "",
+    streetName: "",
+    kind: "delivery" as RouteStop["kind"],
+    lat: "",
+    lng: "",
+  });
+  const [formError, setFormError] = React.useState<string | null>(null);
+  const [dragFromIndex, setDragFromIndex] = React.useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
+  const [dragGhost, setDragGhost] = React.useState<{
+    width: number;
+    height: number;
+    x: number;
+    y: number;
+    tilt: number;
+    originX: number;
+    originY: number;
+  } | null>(null);
+  const dragStateRef = React.useRef<{
+    fromIndex: number;
+    offsetX: number;
+    offsetY: number;
+    width: number;
+    height: number;
+    lastX: number;
+    lastT: number;
+    currentTilt: number;
+  } | null>(null);
+
+  // Lock body scroll when drawer is open (lightweight; no portal needed).
+  React.useEffect(() => {
+    if (!open || !isOverlay) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open, isOverlay]);
+
+  // ESC closes
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  React.useEffect(() => {
+    if (open) return;
+    setIsEditingStops(false);
+    setEditingStopIndex(null);
+    setIsAddingStop(false);
+    setDragFromIndex(null);
+    setDragOverIndex(null);
+  }, [open]);
+
+  React.useEffect(() => {
+    setEditingStopIndex(null);
+    setIsAddingStop(false);
+    setDragFromIndex(null);
+    setDragOverIndex(null);
+  }, [truck?.id]);
+
+  React.useEffect(() => {
+    if (!mapClickPosition) return;
+
+    setIsEditingStops(true);
+    setIsAddingStop(true);
+    setEditingStopIndex(null);
+    setFormValues((prev) => ({
+      ...prev,
+      lat: String(mapClickPosition[0]),
+      lng: String(mapClickPosition[1]),
+    }));
+
+    const controller = new AbortController();
+
+    const runReverseGeocode = async () => {
+      try {
+        const [lat, lng] = mapClickPosition;
+        const url =
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1` +
+          `&lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lng))}`;
+
+        const response = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) return;
+        const payload = (await response.json()) as unknown;
+        const parsed = extractStreetPartsFromReverseGeocode(payload);
+        if (!parsed.streetName && !parsed.streetNumber) return;
+
+        setFormValues((prev) => ({
+          ...prev,
+          streetNumber: parsed.streetNumber || prev.streetNumber,
+          streetName: parsed.streetName || prev.streetName,
+        }));
+      } catch {
+        // Keep manual input flow if geocoding fails.
+      }
+    };
+
+    void runReverseGeocode();
+
+    return () => {
+      controller.abort();
+    };
+  }, [mapClickPosition, mapClickVersion]);
+
+  const remaining = useRouteRemaining(
+    truck && open ? truck.position : null,
+    truck && open ? truck.nextStops : null,
+  );
+
+  if (!truck) return null;
+
+  const resetForm = () => {
+    setFormValues({
+      name: "",
+      streetNumber: "",
+      streetName: "",
+      kind: "delivery",
+      lat: "",
+      lng: "",
+    });
+    setFormError(null);
+    setEditingStopIndex(null);
+    setIsAddingStop(false);
+  };
+
+  const performReorder = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    const fromStop = truck.nextStops[fromIndex];
+    const toStop = truck.nextStops[toIndex];
+    if (!fromStop || !toStop || isStopLocked(fromStop) || isStopLocked(toStop)) return;
+    onReorderStop?.(truck.id, fromIndex, toIndex);
+  };
+
+  const handleBeginDrag = (
+    fromIndex: number,
+    initial: { clientX: number; clientY: number; rect: DOMRect },
+  ) => {
+    const fromStop = truck.nextStops[fromIndex];
+    if (!fromStop || isStopLocked(fromStop)) return;
+
+    const { rect } = initial;
+    const offsetX = initial.clientX - rect.left;
+    const offsetY = initial.clientY - rect.top;
+
+    dragStateRef.current = {
+      fromIndex,
+      offsetX,
+      offsetY,
+      width: rect.width,
+      height: rect.height,
+      lastX: initial.clientX,
+      lastT: performance.now(),
+      currentTilt: 0,
+    };
+
+    setDragFromIndex(fromIndex);
+    setDragOverIndex(fromIndex);
+    setDragGhost({
+      width: rect.width,
+      height: rect.height,
+      x: rect.left,
+      y: rect.top,
+      tilt: 0,
+      originX: offsetX,
+      originY: offsetY,
+    });
+
+    const prevUserSelect = document.body.style.userSelect;
+    const prevCursor = document.body.style.cursor;
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "grabbing";
+
+    const onMove = (e: PointerEvent) => {
+      const state = dragStateRef.current;
+      if (!state) return;
+      const now = performance.now();
+      const dt = Math.max(1, now - state.lastT);
+      const vx = (e.clientX - state.lastX) / dt;
+      const target = Math.max(-16, Math.min(16, vx * 7));
+      const smoothed = state.currentTilt * 0.55 + target * 0.45;
+      state.currentTilt = smoothed;
+      state.lastX = e.clientX;
+      state.lastT = now;
+
+      setDragGhost({
+        width: state.width,
+        height: state.height,
+        x: e.clientX - state.offsetX,
+        y: e.clientY - state.offsetY,
+        tilt: smoothed,
+        originX: state.offsetX,
+        originY: state.offsetY,
+      });
+
+      // Find the stop currently under the cursor (ignoring the ghost since
+      // the ghost has pointer-events: none).
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const hoveredLi =
+        (el as HTMLElement | null)?.closest("[data-stop-index]") ??
+        null;
+      const raw = (hoveredLi as HTMLElement | null)?.dataset.stopIndex;
+      if (raw != null) {
+        const toIdx = Number(raw);
+        if (!Number.isNaN(toIdx)) setDragOverIndex(toIdx);
+      }
+    };
+
+    const finish = (e: PointerEvent | null, commit: boolean) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      document.body.style.userSelect = prevUserSelect;
+      document.body.style.cursor = prevCursor;
+
+      const state = dragStateRef.current;
+      dragStateRef.current = null;
+      setDragGhost(null);
+
+      if (commit && state && e) {
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const targetLi =
+          (el as HTMLElement | null)?.closest("[data-stop-index]") ?? null;
+        const raw = (targetLi as HTMLElement | null)?.dataset.stopIndex;
+        if (raw != null) {
+          const toIdx = Number(raw);
+          if (!Number.isNaN(toIdx)) {
+            performReorder(state.fromIndex, toIdx);
+          }
+        }
+      }
+      setDragFromIndex(null);
+      setDragOverIndex(null);
+    };
+
+    const onUp = (e: PointerEvent) => finish(e, true);
+    const onCancel = () => finish(null, false);
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+  };
+
+  const startAddStop = () => {
+    setFormValues({
+      name: "",
+      streetNumber: "",
+      streetName: "",
+      kind: "delivery",
+      lat: String(truck.position[0]),
+      lng: String(truck.position[1]),
+    });
+    setFormError(null);
+    setEditingStopIndex(null);
+    setIsAddingStop(true);
+  };
+
+  const startEditStop = (index: number) => {
+    const stop = truck.nextStops[index];
+    if (!stop || isStopLocked(stop)) return;
+    const parsedAddress = splitAddress(stop.address);
+
+    setFormValues({
+      name: stop.name,
+      streetNumber: parsedAddress.streetNumber,
+      streetName: parsedAddress.streetName,
+      kind: stop.kind,
+      lat: String(stop.position[0]),
+      lng: String(stop.position[1]),
+    });
+    setFormError(null);
+    setEditingStopIndex(index);
+    setIsAddingStop(false);
+  };
+
+  const submitStopForm = () => {
+    const name = formValues.name.trim();
+    const streetNumber = formValues.streetNumber.trim();
+    const streetName = formValues.streetName.trim();
+    const lat = Number(formValues.lat);
+    const lng = Number(formValues.lng);
+    const address = [streetNumber, streetName].filter(Boolean).join(" ").trim();
+
+    if (!name || !streetNumber || !streetName || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setFormError("Renseigne nom, numero, rue, latitude et longitude.");
+      return;
+    }
+
+    setFormError(null);
+
+    const payload = {
+      name,
+      address,
+      kind: formValues.kind,
+      position: [lat, lng] as [number, number],
+    };
+
+    if (isAddingStop) {
+      onAddStop?.(truck.id, payload);
+      resetForm();
+      return;
+    }
+
+    if (editingStopIndex !== null) {
+      onEditStop?.(truck.id, editingStopIndex, payload);
+      resetForm();
+    }
+  };
+
+  const formVisible = isEditingStops && (isAddingStop || editingStopIndex !== null);
+
+  const statusColor = STATUS_COLORS[truck.status];
+
+  return (
+    <>
+      {isOverlay ? (
+        <div
+          className="tt-drawer__scrim"
+          data-open={open || undefined}
+          onClick={onClose}
+          aria-hidden
+        />
+      ) : null}
+      <aside
+        className={`tt-drawer ${!isOverlay ? "tt-drawer--split" : ""}`}
+        data-open={open || undefined}
+        role="dialog"
+        aria-label={`Détails du camion ${truck.plate}`}
+      >
+        <header className="tt-drawer__head">
+          <div className="tt-drawer__title">
+            <span className="tt-drawer__plate">{truck.plate}</span>
+            <span
+              className="tt-drawer__status"
+              style={{
+                color: statusColor,
+                background: `color-mix(in oklab, ${statusColor} 14%, transparent)`,
+              }}
+            >
+              {STATUS_LABELS[truck.status]}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="tt-drawer__close"
+            onClick={onClose}
+            aria-label="Fermer"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </header>
+
+        <div className="tt-drawer__driver">
+          <div className="tt-drawer__driver-name">{truck.driverName}</div>
+          <div className="tt-drawer__driver-meta">{truck.driverId}</div>
+        </div>
+
+        <section className="tt-drawer__metrics">
+          <div>
+            <span>Charge</span>
+            <strong>{truck.load}%</strong>
+          </div>
+          <div>
+            <span>Vitesse</span>
+            <strong>{truck.speedKmh ? `${truck.speedKmh} km/h` : "—"}</strong>
+          </div>
+          <div>
+            <span>Reste à parcourir</span>
+            <strong>{formatDistance(remaining.data?.distanceMeters ?? null)}</strong>
+          </div>
+          <div>
+            <span>Temps restant</span>
+            <strong>{formatDuration(remaining.data?.durationSeconds ?? null)}</strong>
+          </div>
+        </section>
+
+        {remaining.status === "error" ? (
+          <div className="tt-drawer__alert">
+            Trajet restant indisponible (Google Routes : {remaining.error}). Affichage approximatif.
+          </div>
+        ) : null}
+
+        <section className="tt-drawer__section">
+          <div className="tt-drawer__section-head">
+            <h3>Trajet</h3>
+            <div className="tt-drawer__edit-toolbar">
+              <button
+                type="button"
+                className="tt-drawer__more"
+                onClick={() => setIsEditingStops((v) => !v)}
+              >
+                {isEditingStops ? "Terminer" : "Modifier les etapes"}
+              </button>
+              {isEditingStops ? (
+                <button
+                  type="button"
+                  className="tt-drawer__more"
+                  onClick={startAddStop}
+                >
+                  + Ajouter une etape
+                </button>
+              ) : null}
+            </div>
+          </div>
+          {formVisible ? (
+            <div className="tt-drawer__form">
+              <div className="tt-drawer__form-head">
+                <div className="tt-drawer__form-title-row">
+                  <span className="tt-drawer__form-badge">
+                    {isAddingStop ? "Creation" : "Edition"}
+                  </span>
+                  <div className="tt-drawer__form-title">
+                    {isAddingStop ? "Nouvelle etape" : "Modifier l'etape"}
+                  </div>
+                </div>
+                <div className="tt-drawer__form-tip">
+                  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden fill="none">
+                    <path d="M12 3.5a7 7 0 0 0-4.9 12 4.5 4.5 0 0 1 1.35 3.2V19h7.1v-.3a4.5 4.5 0 0 1 1.35-3.2A7 7 0 0 0 12 3.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M9.5 21h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                  <span>
+                    Astuce: selectionne un camion, puis clique sur la carte pour pre-remplir latitude/longitude.
+                  </span>
+                </div>
+              </div>
+              <input
+                type="text"
+                value={formValues.name}
+                onChange={(e) => setFormValues((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="Nom"
+                className="tt-drawer__input"
+              />
+              <div className="tt-drawer__form-row tt-drawer__form-row--address">
+                <input
+                  type="text"
+                  value={formValues.streetNumber}
+                  onChange={(e) => setFormValues((prev) => ({ ...prev, streetNumber: e.target.value }))}
+                  placeholder="Numero"
+                  className="tt-drawer__input"
+                />
+                <input
+                  type="text"
+                  value={formValues.streetName}
+                  onChange={(e) => setFormValues((prev) => ({ ...prev, streetName: e.target.value }))}
+                  placeholder="Nom de rue"
+                  className="tt-drawer__input"
+                />
+              </div>
+              <div className="tt-drawer__addr-preview">
+                Adresse: {([formValues.streetNumber, formValues.streetName].filter(Boolean).join(" ") || "-")}
+              </div>
+              <select
+                value={formValues.kind}
+                onChange={(e) =>
+                  setFormValues((prev) => ({
+                    ...prev,
+                    kind: e.target.value as RouteStop["kind"],
+                  }))
+                }
+                className="tt-drawer__select"
+              >
+                <option value="delivery">Livraison</option>
+                <option value="store">Magasin</option>
+                <option value="pickup">Enlevement</option>
+                <option value="warehouse">Entrepot</option>
+              </select>
+              <div className="tt-drawer__form-row tt-drawer__form-row--coords">
+                <input
+                  type="number"
+                  value={formValues.lat}
+                  onChange={(e) => setFormValues((prev) => ({ ...prev, lat: e.target.value }))}
+                  placeholder="Latitude"
+                  className="tt-drawer__input"
+                />
+                <input
+                  type="number"
+                  value={formValues.lng}
+                  onChange={(e) => setFormValues((prev) => ({ ...prev, lng: e.target.value }))}
+                  placeholder="Longitude"
+                  className="tt-drawer__input"
+                />
+              </div>
+              {formError ? (
+                <div className="tt-drawer__error">{formError}</div>
+              ) : null}
+              <div className="tt-drawer__actions">
+                <button type="button" className="tt-drawer__more tt-drawer__more--primary" onClick={submitStopForm}>
+                  Enregistrer
+                </button>
+                <button type="button" className="tt-drawer__more" onClick={resetForm}>
+                  Annuler
+                </button>
+              </div>
+            </div>
+          ) : null}
+          {isEditingStops ? (
+            <div className="tt-drawer__reorder-hint">
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden fill="currentColor">
+                <circle cx="9" cy="6" r="1.4" />
+                <circle cx="15" cy="6" r="1.4" />
+                <circle cx="9" cy="12" r="1.4" />
+                <circle cx="15" cy="12" r="1.4" />
+                <circle cx="9" cy="18" r="1.4" />
+                <circle cx="15" cy="18" r="1.4" />
+              </svg>
+              <span>Glissez la poignée à gauche d&apos;une étape pour la réordonner.</span>
+            </div>
+          ) : null}
+          <ol
+            className="tt-drawer__stops"
+            data-editing={isEditingStops || undefined}
+          >
+            <StopRow stop={truck.origin} index={-1} done />
+            {truck.nextStops.map((stop, i) => (
+              <StopRow
+                key={stop.id}
+                stop={stop}
+                index={i}
+                done={!!stop.completedAt}
+                isCurrent={i === 0}
+                editingEnabled={isEditingStops}
+                canModify={!isStopLocked(stop)}
+                canDrag={isEditingStops && !isStopLocked(stop)}
+                onEdit={() => startEditStop(i)}
+                onDelete={() => onDeleteStop?.(truck.id, i)}
+                onBeginDrag={(initial) => handleBeginDrag(i, initial)}
+                dragActive={dragOverIndex === i && dragFromIndex !== null && dragFromIndex !== i}
+                isDragging={dragFromIndex === i}
+              />
+            ))}
+          </ol>
+          {dragGhost && dragFromIndex !== null && truck.nextStops[dragFromIndex] ? (
+            <DragGhost
+              stop={truck.nextStops[dragFromIndex]}
+              index={dragFromIndex}
+              done={!!truck.nextStops[dragFromIndex].completedAt}
+              width={dragGhost.width}
+              height={dragGhost.height}
+              x={dragGhost.x}
+              y={dragGhost.y}
+              tilt={dragGhost.tilt}
+              originX={dragGhost.originX}
+              originY={dragGhost.originY}
+            />
+          ) : null}
+        </section>
+
+        <footer className="tt-drawer__foot">
+          <a className="tt-drawer__more" href={`/chauffeurs?focus=${truck.driverId}`}>
+            Fiche chauffeur
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m10 6 6 6-6 6" />
+            </svg>
+          </a>
+        </footer>
+      </aside>
+    </>
+  );
+}
