@@ -1,7 +1,7 @@
 // API client stubs. Replace with real fetch calls; keep the function signatures stable
 // so the UI doesn't need to change.
 
-import type { DashcamVideo, Driver, DriverUser } from "./types";
+import type { DashcamVideo, Driver, DriverUser, Incident, IncidentType } from "./types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API ?? "";
 
@@ -108,11 +108,20 @@ export const ApiDrivers = {
 
 // ─── ApiIncidents ─────────────────────────────────────────────────────────────
 
-// export const ApiIncidents = {
-//   list:         ()                                               => request<Incident[]>("GET",   "/api/incidents"),
-//   get:          (id: string)                                     => request<Incident> ("GET",   `/api/incidents/${id}`),
-//   updateStatus: (id: string, status: IncidentStatus, note?: string) => request<Incident>("PATCH", `/api/incidents/${id}`, { status, note }),
-// };
+type ApiIncident = {
+  _id: string;
+  type: IncidentType;
+  position: { lat: number; lng: number };
+  timestamp: string;
+  comment?: string;
+};
+
+export const ApiIncidents = {
+  list: async (): Promise<Incident[]> => {
+    const raw = await request<ApiIncident[]>("GET", "/incidents");
+    return raw.map((r) => ({ id: r._id, type: r.type, position: r.position, timestamp: r.timestamp, comment: r.comment }));
+  },
+};
 
 // ─── Dev stubs ────────────────────────────────────────────────────────────────
 
