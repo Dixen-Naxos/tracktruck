@@ -4,7 +4,6 @@ import { warehouses } from "../../db/Warehouse.js";
 import { trucks } from "../../db/Truck.js";
 import { users } from "../../db/User.js";
 import { deliveries } from "../../db/Delivery.js";
-import { dashcamVideos } from "../../db/DashcamVideo.js";
 import {
   truckPositionTraces,
   type TruckPositionTrace,
@@ -17,7 +16,6 @@ export async function clearAll() {
     trucks.deleteMany({}),
     users.deleteMany({}),
     deliveries.deleteMany({}),
-    dashcamVideos.deleteMany({}),
     truckPositionTraces.deleteMany({}),
   ]);
 }
@@ -109,9 +107,27 @@ export async function runSeed(): Promise<SeedResult> {
   await stores.insertMany(storeDocs);
 
   const truckDocs = [
-    { _id: new ObjectId(), plateNumber: "AB-123-CD", packageCapacity: 120, fuelType: "diesel" as const, fuelConsumptionL100km: 28.5 },
-    { _id: new ObjectId(), plateNumber: "EF-456-GH", packageCapacity: 80,  fuelType: "diesel" as const, fuelConsumptionL100km: 24.0 },
-    { _id: new ObjectId(), plateNumber: "IJ-789-KL", packageCapacity: 200, fuelType: "essence" as const, fuelConsumptionL100km: 18.5 },
+    {
+      _id: new ObjectId(),
+      plateNumber: "AB-123-CD",
+      packageCapacity: 120,
+      fuelType: "diesel" as const,
+      fuelConsumptionL100km: 28.5,
+    },
+    {
+      _id: new ObjectId(),
+      plateNumber: "EF-456-GH",
+      packageCapacity: 80,
+      fuelType: "diesel" as const,
+      fuelConsumptionL100km: 24.0,
+    },
+    {
+      _id: new ObjectId(),
+      plateNumber: "IJ-789-KL",
+      packageCapacity: 200,
+      fuelType: "essence" as const,
+      fuelConsumptionL100km: 18.5,
+    },
   ];
   await trucks.insertMany(truckDocs);
 
@@ -124,21 +140,36 @@ export async function runSeed(): Promise<SeedResult> {
     },
     {
       _id: new ObjectId(),
-      firebaseUid: "seed-admin-1",
+      firebaseUid: "lUwH9yOaSgb1k3abu8Mi7hbnlxj1",
       email: "admin@tracktruck.dev",
       role: "admin" as const,
     },
     {
       _id: new ObjectId(),
-      firebaseUid: "seed-admin-2",
+      firebaseUid: "zXWb1pZPs6Rr2pkMXfSdqo4RoAM2",
       email: "marie.lefevre@tracktruck.dev",
       role: "admin" as const,
     },
   ];
 
-  const allSkills = ["frigorifique", "matières dangereuses", "fragile", "longue distance", "express"];
-  const allZones = ["Paris", "Seine-Saint-Denis", "Val-de-Marne", "Hauts-de-Seine", "Val-d'Oise", "Essonne", "Seine-et-Marne", "Yvelines"];
-  const pick = <T,>(arr: T[], n: number, seed: number): T[] => {
+  const allSkills = [
+    "frigorifique",
+    "matières dangereuses",
+    "fragile",
+    "longue distance",
+    "express",
+  ];
+  const allZones = [
+    "Paris",
+    "Seine-Saint-Denis",
+    "Val-de-Marne",
+    "Hauts-de-Seine",
+    "Val-d'Oise",
+    "Essonne",
+    "Seine-et-Marne",
+    "Yvelines",
+  ];
+  const pick = <T>(arr: T[], n: number, seed: number): T[] => {
     const out: T[] = [];
     for (let i = 0; i < n; i++) out.push(arr[(seed + i * 3) % arr.length]);
     return Array.from(new Set(out));
@@ -159,30 +190,36 @@ export async function runSeed(): Promise<SeedResult> {
       zones: ["Paris", "Lille"],
     },
     ...[
-      ["Alice", "Martin"],
-      ["Bob", "Durand"],
-      ["Chloé", "Dubois"],
-      ["David", "Bernard"],
-      ["Emma", "Petit"],
-      ["Florian", "Robert"],
-      ["Gaëlle", "Richard"],
-      ["Hugo", "Moreau"],
-      ["Inès", "Laurent"],
-      ["Julien", "Simon"],
-      ["Karim", "Michel"],
-      ["Léa", "Garcia"],
-      ["Mathieu", "David"],
-      ["Nadia", "Bertrand"],
-      ["Olivier", "Roux"],
-      ["Pauline", "Vincent"],
-      ["Quentin", "Fournier"],
-      ["Romain", "Morel"],
-      ["Sophie", "Girard"],
-      ["Thomas", "Andre"],
+      ["Alice", "Martin", "GQNxnJ4j3Hau1sHBJL2l2wrHz3A2"],
+      ["Bob", "Durand", "OG5KjDNyYtXQ40tlifO6vtgSfbO2"],
+      ["Chloé", "Dubois", "rTNXd1rJ5VTKITZAg25UQyhmAwX2"],
+      ["David", "Bernard", "m3i6MCgpXdaXR9ssCChePpPDI252"],
+      ["Emma", "Petit", "iKfy2lTZmodc18t3eijAYTezI0G2"],
+      ["Florian", "Robert", "l99DsLwM0TfulHE8ZmfmMXUjdcG2"],
+      ["Gaëlle", "Richard", "4ppOz474KnPdZdhe12LLDtjfmWr2"],
+      ["Hugo", "Moreau", "hd3XvDk0rYeEEepTZBTO0Bw2R2w1"],
+      ["Inès", "Laurent", "jp7h9j1GmfPePJXBHkq4NzyMyrP2"],
+      ["Julien", "Simon", "b9dkwPlmXsNnqy3e0leVVFOgqE93"],
+      ["Karim", "Michel", "H6kLaXtDbYbJt12bRn5vA8q2wy1"],
+      ["Léa", "Garcia", "J0lWIvEIhzZnGsslgzvvQSxa5sl1"],
+      ["Mathieu", "David", "5elHYOYhS1fC1SIYnz4qbw6T4Km1"],
+      ["Nadia", "Bertrand", "poiTwBtRU5e0gFKwCiLhdwsk7L23"],
+      ["Olivier", "Roux", "7t1koUlJ4jgyDktczJaAnLOvFqA3"],
+      ["Pauline", "Vincent", "56YGrnCYpYYTfRsQEX9SifZpQ7z1"],
+      ["Quentin", "Fournier", "OW1XNFghHkdgkic9JkoifS2kVSQ2"],
+      ["Romain", "Morel", "aNSvRb8EHSYfW1b8JJf980yNTtF3"],
+      ["Sophie", "Girard", "mTYcHFOmRhRZoCOUbPmIh0FUmvE2"],
+      ["Thomas", "Andre", "T2YtMtyizgX9ENtf8GuSTnCrDVh1"],
     ].map(([firstName, lastName], i) => ({
       _id: new ObjectId(),
       firebaseUid: `seed-driver-${i + 1}`,
-      email: `${firstName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}.${lastName.toLowerCase()}@tracktruck.dev`,
+      email: `${firstName
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(
+          /[\u0300-\u036f]/g,
+          "",
+        )}.${lastName.toLowerCase()}@tracktruck.dev`,
       role: "driver" as const,
       firstName,
       lastName,
