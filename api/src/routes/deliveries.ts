@@ -2,17 +2,10 @@ import { Hono } from "hono";
 import { describeRoute, validator } from "hono-openapi";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
-import { HTTPException } from "hono/http-exception";
 import { requireAuth, requireRole, type AuthEnv } from "../auth/middleware.js";
 import { assignDriverToDelivery } from "../features/deliveries/assignDriver.js";
 import { createDelivery } from "../features/deliveries/createDelivery.js";
 import { listDeliveries } from "../features/deliveries/listDeliveries.js";
-import {
-  computeItinerary,
-  resolveWaypointFromId,
-  type ItineraryWaypoint,
-} from "../features/itineraries/computeItinerary.js";
-import { stores, type Store } from "../db/Store.js";
 import { idParamSchema } from "../utils/idParamSchema.js";
 
 const objectIdSchema = z
@@ -20,64 +13,40 @@ const objectIdSchema = z
   .refine((s) => ObjectId.isValid(s), "Invalid ID")
   .transform((s) => new ObjectId(s));
 
-const adHocStopSchema = z.object({
-  name: z.string().trim().min(1),
-  address: z.string().trim().default(""),
-  location: z.object({
-    lat: z.number(),
-    lng: z.number(),
-  }),
-});
-
 const createDeliverySchema = z
   .object({
     departureWarehouseId: objectIdSchema,
-    /** Existing store IDs (visit order will be optimized by Google). */
-    storeIds: z.array(objectIdSchema).optional(),
-    /** Arbitrary points — addresses or coordinates picked on the map. */
-    stops: z.array(adHocStopSchema).optional(),
     plannedStartAt: z.iso.datetime().transform((s) => new Date(s)),
+    // Paste the itinerary object returned by POST /itineraries/compute
+    itinerary: z.object({
+      orderedStopIds: z.array(objectIdSchema).min(1),
+      totalDistanceKilometers: z.number().nonnegative(),
+      totalDurationSeconds: z.number().nonnegative().int(),
+      blockingSigns: z
+        .array(z.object({ osmId: z.string() }).passthrough())
+        .default([]),
+      wasRerouted: z.boolean().default(false),
+    }),
     truckId: objectIdSchema.optional(),
     driverId: objectIdSchema.optional(),
   })
-  .refine(
-    (v) => (v.storeIds?.length ?? 0) + (v.stops?.length ?? 0) >= 1,
-    { message: "Provide at least one storeId or one stop" },
-  );
-
-/**
- * For an ad-hoc waypoint, either reuse an existing Store at the same
- * coordinates or create a new one. This keeps Delivery.storeIds valid.
- */
-async function materializeAdHocStop(wp: ItineraryWaypoint): Promise<ObjectId> {
-  if (wp.existingStoreId) return wp.existingStoreId;
-
-  // Cheap proximity match (~11m) on exact coordinates to avoid duplicates.
-  const epsilon = 0.0001;
-  const existing = await stores.findOne({
-    "location.lat": { $gte: wp.location.lat - epsilon, $lte: wp.location.lat + epsilon },
-    "location.lng": { $gte: wp.location.lng - epsilon, $lte: wp.location.lng + epsilon },
-  });
-  if (existing) return existing._id;
-
-  const created: Store = {
-    _id: new ObjectId(),
-    name: wp.name,
-    address: wp.address || `${wp.location.lat.toFixed(5)}, ${wp.location.lng.toFixed(5)}`,
-    location: wp.location,
-  };
-  await stores.insertOne(created);
-  return created._id;
-}
+  .transform((d) => ({
+    departureWarehouseId: d.departureWarehouseId,
+    plannedStartAt: d.plannedStartAt,
+    orderedStopIds: d.itinerary.orderedStopIds,
+    totalDistanceKm: d.itinerary.totalDistanceKilometers,
+    totalDurationSeconds: d.itinerary.totalDurationSeconds,
+    truckId: d.truckId,
+    driverId: d.driverId,
+  }));
 
 export const deliveriesRoute = new Hono<AuthEnv>()
-  // .use("*", requireAuth, requireRole("admin"))
   .post(
     "/",
     describeRoute({
       summary: "Create a delivery",
       description:
-        "Computes the optimal itinerary via Google Routes API then persists the delivery. Accepts either existing storeIds and/or ad-hoc stops (with coordinates). A truck and driver can be assigned inline.",
+        "Persists a delivery from an itinerary previously computed by POST /itineraries/compute. No route computation happens here.",
       tags: ["Deliveries"],
       requestBody: {
         required: true,
@@ -85,68 +54,28 @@ export const deliveriesRoute = new Hono<AuthEnv>()
           "application/json": {
             example: {
               departureWarehouseId: "684a1f2e3c4b5d6e7f8a9b0c",
-              stops: [
-                {
-                  name: "Client Bastille",
-                  address: "5 Place de la Bastille, 75004 Paris",
-                  location: { lat: 48.853, lng: 2.369 },
-                },
-              ],
               plannedStartAt: "2026-04-25T08:00:00.000Z",
-              truckId: "684a1f2e3c4b5d6e7f8a9b11",
-              driverId: "684a1f2e3c4b5d6e7f8a9b12",
+              itinerary: {
+                orderedStopIds: ["684a1f2e3c4b5d6e7f8a9b0d", "684a1f2e3c4b5d6e7f8a9b0e"],
+                totalDistanceKilometers: 18.3,
+                totalDurationSeconds: 3240,
+                blockingSigns: [],
+                wasRerouted: false,
+              },
             },
           },
         },
       },
       responses: {
         201: { description: "Delivery created" },
-        404: { description: "Warehouse or store not found" },
+        404: { description: "Warehouse not found" },
         409: { description: "Identical delivery already exists" },
-        502: { description: "Google Routes API error" },
       },
     }),
     validator("json", createDeliverySchema),
     async (c) => {
-      const { departureWarehouseId, storeIds, stops, plannedStartAt, truckId, driverId } =
-        c.req.valid("json");
-
-      const start = await resolveWaypointFromId(departureWarehouseId);
-
-      const resolvedFromIds: ItineraryWaypoint[] = storeIds
-        ? await Promise.all(storeIds.map(resolveWaypointFromId))
-        : [];
-
-      const adHoc: ItineraryWaypoint[] = (stops ?? []).map((s) => ({
-        name: s.name,
-        address: s.address,
-        location: s.location,
-      }));
-
-      const allStops = [...resolvedFromIds, ...adHoc];
-      if (allStops.length === 0) {
-        throw new HTTPException(400, {
-          message: "At least one stop is required",
-        });
-      }
-
-      const itineraryResult = await computeItinerary({ start, stops: allStops });
-
-      // Materialize every ordered stop into a Store doc so storeIds stays valid.
-      const orderedStopIds = await Promise.all(
-        itineraryResult.orderedStops.map(materializeAdHocStop),
-      );
-
-      const delivery = await createDelivery({
-        departureWarehouseId,
-        plannedStartAt,
-        totalDistanceKm: itineraryResult.totalDistanceKilometers,
-        totalDurationSeconds: itineraryResult.totalDurationSeconds,
-        orderedStopIds,
-        truckId,
-        driverId,
-      });
-
+      const body = c.req.valid("json");
+      const delivery = await createDelivery(body);
       return c.json(delivery, 201);
     },
   )
