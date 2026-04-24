@@ -76,25 +76,6 @@ export function DriverCard({
   );
 }
 
-function Metric({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <div
-        style={{ color: "var(--ink-4)" }}
-        className="text-[10.5px] font-medium uppercase tracking-[0.3px]"
-      >
-        {label}
-      </div>
-      <div
-        style={{ color: "var(--ink-1)" }}
-        className="text-[14px] font-semibold tabular-nums"
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
 export function DriverList({
   drivers,
   onOpen,
