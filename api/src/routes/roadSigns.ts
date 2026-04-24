@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import { describeRoute, validator } from "hono-openapi";
 import { z } from "zod";
+import { HTTPException } from "hono/http-exception";
 import type { AuthEnv } from "../auth/middleware.js";
 import { requireAuth, requireRole } from "../auth/middleware.js";
 import { syncRoadSigns } from "../features/road-signs/syncRoadSigns.js";
+import { roadSigns } from "../db/RoadSign.js";
 
 const bboxSchema = z.object({
   south: z.coerce.number(),
@@ -12,7 +14,28 @@ const bboxSchema = z.object({
   east: z.coerce.number(),
 });
 
-export const roadSignsRoute = new Hono<AuthEnv>().post(
+const osmIdSchema = z.object({ osmId: z.string() });
+
+export const roadSignsRoute = new Hono<AuthEnv>()
+  .get(
+    "/:osmId",
+    describeRoute({
+      summary: "Get a road sign by OSM ID",
+      tags: ["Road Signs"],
+      responses: {
+        200: { description: "Road sign found" },
+        404: { description: "Road sign not found" },
+      },
+    }),
+    validator("param", osmIdSchema),
+    async (c) => {
+      const { osmId } = c.req.valid("param");
+      const sign = await roadSigns.findOne({ osmId });
+      if (!sign) throw new HTTPException(404, { message: `Road sign ${osmId} not found` });
+      return c.json(sign);
+    },
+  )
+  .post(
   "/sync",
   describeRoute({
     summary: "Sync road signs from OpenStreetMap for a given bounding box",

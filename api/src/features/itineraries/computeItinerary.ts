@@ -57,6 +57,8 @@ export type ComputeItineraryResult = {
   totalDurationSeconds: number;
   orderedStops: ItineraryStop[];
   orderedStopIds: ObjectId[];
+  /** Google encoded polyline of the full route (for drawing on map) */
+  encodedPolyline: string;
   /** Signs that would block the truck, if any (empty = route is safe) */
   blockingSigns: BlockingSign[];
   /** True if the route was recomputed to avoid blocking signs */
@@ -304,6 +306,7 @@ export async function computeItinerary(
     totalDurationSeconds,
     orderedStops,
     orderedStopIds,
+    encodedPolyline: route.polyline?.encodedPolyline ?? "",
     blockingSigns,
     wasRerouted,
   };
