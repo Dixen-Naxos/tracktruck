@@ -101,6 +101,16 @@ export interface ToastItem {
 
 export type ViewKey = "carte" | "chauffeurs" | "commandes" | "dashcam" | "signalements";
 
+export type IncidentType = "external" | "delivery_delayed" | "vehicle_breakdown";
+
+export interface Incident {
+  id: string;
+  type: IncidentType;
+  position: { lat: number; lng: number };
+  timestamp: string;
+  comment?: string;
+}
+
 export interface DashcamVideo {
   id: string;
   assetPath: string;
