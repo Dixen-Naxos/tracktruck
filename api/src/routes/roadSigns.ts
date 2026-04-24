@@ -1,6 +1,5 @@
 import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
-import { describeRoute } from "hono-openapi";
+import { describeRoute, validator } from "hono-openapi";
 import { z } from "zod";
 import type { AuthEnv } from "../auth/middleware.js";
 import { requireAuth, requireRole } from "../auth/middleware.js";
@@ -36,7 +35,7 @@ export const roadSignsRoute = new Hono<AuthEnv>().post(
   }),
   requireAuth,
   requireRole("admin"),
-  zValidator("json", bboxSchema),
+  validator("json", bboxSchema),
   async (c) => {
     const bbox = c.req.valid("json");
     const result = await syncRoadSigns(bbox);
