@@ -3,13 +3,9 @@ part of 'itinerary_bloc.dart';
 sealed class ItineraryEvent {}
 
 final class ComputeItinerary extends ItineraryEvent {
-  final String startPointId;
-  final List<String> toVisitIds;
+  final String deliveryId;
 
-  ComputeItinerary({
-    required this.startPointId,
-    required this.toVisitIds,
-  });
+  ComputeItinerary({required this.deliveryId});
 }
 
 final class StopPolling extends ItineraryEvent {}

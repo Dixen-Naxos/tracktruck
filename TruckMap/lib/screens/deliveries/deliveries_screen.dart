@@ -184,9 +184,9 @@ class _DeliveryCard extends StatelessWidget {
   }
 
   void _openMap(BuildContext context) {
+    debugPrint('[_openMap] deliveryId=${delivery.id}');
     context.read<ItineraryBloc>().add(ComputeItinerary(
-          startPointId: delivery.departureWarehouseId,
-          toVisitIds: delivery.storeIds,
+          deliveryId: delivery.id,
         ));
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => MapScreen(deliveryId: delivery.id)),

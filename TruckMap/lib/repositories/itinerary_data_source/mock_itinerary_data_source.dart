@@ -7,8 +7,7 @@ import 'package:truck_map/widgets/utility_point.dart';
 class MockItineraryDataSource implements ItineraryDataSource {
   @override
   Future<Itinerary> computeItinerary({
-    required String startPointId,
-    required List<String> toVisitIds,
+    required String deliveryId,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
 

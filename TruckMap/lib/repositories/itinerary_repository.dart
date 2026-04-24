@@ -7,12 +7,10 @@ class ItineraryRepository {
   ItineraryRepository({required this.dataSource});
 
   Future<Itinerary> computeItinerary({
-    required String startPointId,
-    required List<String> toVisitIds,
+    required String deliveryId,
   }) {
     return dataSource.computeItinerary(
-      startPointId: startPointId,
-      toVisitIds: toVisitIds,
+      deliveryId: deliveryId,
     );
   }
 }

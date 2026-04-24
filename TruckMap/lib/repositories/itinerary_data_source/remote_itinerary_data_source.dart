@@ -12,19 +12,14 @@ class RemoteItineraryDataSource implements ItineraryDataSource {
 
   @override
   Future<Itinerary> computeItinerary({
-    required String startPointId,
-    required List<String> toVisitIds,
+    required String deliveryId,
   }) async {
-    final response = await client.post(
-      Uri.parse('${AppConfig.apiBaseUrl}/itineraries/compute'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'startPointId': startPointId,
-        'toVisitIds': toVisitIds,
-      }),
+    final response = await client.get(
+      Uri.parse('${AppConfig.apiBaseUrl}/deliveries/$deliveryId/itinerary'),
     );
     if (response.statusCode != 200) {
-      throw Exception('Failed to compute itinerary: ${response.statusCode}');
+      throw Exception(
+          'Failed to compute itinerary: ${response.statusCode} ${response.body}');
     }
     final json = jsonDecode(response.body) as Map<String, dynamic>;
     return Itinerary.fromJson(json);
