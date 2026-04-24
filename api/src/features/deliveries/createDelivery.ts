@@ -2,17 +2,28 @@ import { ObjectId } from "mongodb";
 import { HTTPException } from "hono/http-exception";
 import { deliveries, type Delivery } from "../../db/Delivery.js";
 import { warehouses } from "../../db/Warehouse.js";
-import type { ComputeItineraryResult } from "../itineraries/computeItinerary.js";
 
 export type CreateDeliveryInput = {
   departureWarehouseId: ObjectId;
   plannedStartAt: Date;
-  itineraryResult: ComputeItineraryResult;
+  totalDistanceKm: number;
+  totalDurationSeconds: number;
+  /** Ordered (optimized) stop IDs. */
+  orderedStopIds: ObjectId[];
+  truckId?: ObjectId;
+  driverId?: ObjectId;
 };
 
 export async function createDelivery(input: CreateDeliveryInput): Promise<Delivery> {
-  const { departureWarehouseId, plannedStartAt, itineraryResult } = input;
-  const { orderedStopIds, totalDistanceKilometers, totalDurationSeconds } = itineraryResult;
+  const {
+    departureWarehouseId,
+    plannedStartAt,
+    totalDistanceKm,
+    totalDurationSeconds,
+    orderedStopIds,
+    truckId,
+    driverId,
+  } = input;
 
   // Verify departure warehouse exists
   const warehouse = await warehouses.findOne({ _id: departureWarehouseId });
@@ -34,11 +45,13 @@ export async function createDelivery(input: CreateDeliveryInput): Promise<Delive
     _id: new ObjectId(),
     departureWarehouseId,
     storeIds: orderedStopIds,
-    totalDistanceKm: totalDistanceKilometers,
+    totalDistanceKm,
     totalDurationSeconds,
     plannedStartAt,
     storeArrivals: [],
     status: "planned",
+    ...(truckId ? { truckId } : {}),
+    ...(driverId ? { driverId } : {}),
   };
 
   await deliveries.insertOne(delivery);

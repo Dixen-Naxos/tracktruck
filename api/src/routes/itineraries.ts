@@ -2,8 +2,11 @@ import { Hono } from "hono";
 import { describeRoute, validator } from "hono-openapi";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
-import { requireAuth, requireRole, type AuthEnv } from "../auth/middleware.js";
-import { computeItinerary } from "../features/itineraries/computeItinerary.js";
+import type { AuthEnv } from "../auth/middleware.js";
+import {
+  computeItinerary,
+  resolveWaypointFromId,
+} from "../features/itineraries/computeItinerary.js";
 
 const objectIdSchema = z
   .string()
@@ -48,7 +51,11 @@ export const itinerariesRoute = new Hono<AuthEnv>()
     validator("json", computeItinerarySchema),
     async (c) => {
       const { startPointId, toVisitIds } = c.req.valid("json");
-      const itinerary = await computeItinerary({ startPointId, toVisitIds });
+
+      const start = await resolveWaypointFromId(startPointId);
+      const stops = await Promise.all(toVisitIds.map(resolveWaypointFromId));
+
+      const itinerary = await computeItinerary({ start, stops });
       return c.json({ itinerary });
     },
   );
