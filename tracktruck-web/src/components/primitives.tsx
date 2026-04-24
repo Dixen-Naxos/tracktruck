@@ -287,9 +287,9 @@ export function SearchInput({
         border: "1px solid var(--line)",
         color: "var(--ink-3)",
       }}
-      className="inline-flex h-18 w-full items-center gap-2 rounded-[10px] px-3"
+      className="inline-flex h-10 w-full items-center gap-2 rounded-[10px] px-3"
     >
-      <Icon.search size={32} />
+      <Icon.search size={24} />
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
