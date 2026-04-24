@@ -45,6 +45,7 @@ export default function CartePage() {
   >([]);
   const [newDeliveryDeparture, setNewDeliveryDeparture] =
     React.useState<LatLng | null>(null);
+  const [newDeliveryRoute, setNewDeliveryRoute] = React.useState<LatLng[] | null>(null);
   const [reloadKey, setReloadKey] = React.useState(0);
 
   // Load trucks from the backend. Re-poll every 10s to keep positions fresh.
@@ -144,6 +145,7 @@ export default function CartePage() {
     setNewDeliveryOpen(false);
     setNewDeliveryPendingStops([]);
     setNewDeliveryDeparture(null);
+    setNewDeliveryRoute(null);
   }, []);
 
   const handleNewDeliveryCreated = React.useCallback(() => {
@@ -367,6 +369,7 @@ export default function CartePage() {
               onMapClick={handleMapClickAddStop}
               pendingStops={newDeliveryOpen ? newDeliveryPendingStops : null}
               pendingOrigin={newDeliveryOpen ? newDeliveryDeparture : null}
+              pendingRoute={newDeliveryOpen ? newDeliveryRoute : null}
             />
           </div>
         </Card>
@@ -478,6 +481,7 @@ export default function CartePage() {
         onCreated={handleNewDeliveryCreated}
         onStopsChange={setNewDeliveryPendingStops}
         onDepartureChange={setNewDeliveryDeparture}
+        onRouteChange={setNewDeliveryRoute}
       />
     </div>
   );

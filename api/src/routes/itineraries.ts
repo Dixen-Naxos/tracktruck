@@ -7,6 +7,7 @@ import {
   computeItinerary,
   resolveWaypointFromId,
 } from "../features/itineraries/computeItinerary.js";
+import { previewRoute } from "../features/itineraries/previewRoute.js";
 
 const objectIdSchema = z
   .string()
@@ -16,6 +17,13 @@ const objectIdSchema = z
 const computeItinerarySchema = z.object({
   startPointId: objectIdSchema,
   toVisitIds: z.array(objectIdSchema).min(1),
+});
+
+const latLngSchema = z.object({ lat: z.number(), lng: z.number() });
+
+const previewRouteSchema = z.object({
+  origin: latLngSchema,
+  stops: z.array(latLngSchema).min(1),
 });
 
 export const itinerariesRoute = new Hono<AuthEnv>()
@@ -57,5 +65,24 @@ export const itinerariesRoute = new Hono<AuthEnv>()
 
       const itinerary = await computeItinerary({ start, stops });
       return c.json({ itinerary });
+    },
+  )
+  .post(
+    "/preview",
+    describeRoute({
+      summary: "Preview route polyline",
+      description:
+        "Calls Google Routes API to get the road polyline for a set of raw waypoints. Does not persist anything. The API key stays server-side.",
+      tags: ["Itineraries"],
+      responses: {
+        200: { description: "Decoded polyline + distance + duration" },
+        502: { description: "Google Routes API error" },
+      },
+    }),
+    validator("json", previewRouteSchema),
+    async (c) => {
+      const { origin, stops } = c.req.valid("json");
+      const result = await previewRoute({ origin, stops });
+      return c.json(result);
     },
   );

@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   ApiDeliveries,
   ApiDrivers,
+  ApiItineraries,
   ApiTrucks,
   ApiWarehouses,
   type ApiTruck,
@@ -40,6 +41,8 @@ export interface NewDeliveryDrawerProps {
   onStopsChange?: (stops: Array<{ position: LatLng; name: string }>) => void;
   /** Departure warehouse position — shown on the map while building. */
   onDepartureChange?: (position: LatLng | null) => void;
+  /** Real road polyline returned by the preview API — shown on the map in preview step. */
+  onRouteChange?: (route: LatLng[] | null) => void;
 }
 
 function newDraftStop(): DraftStop {
@@ -102,6 +105,7 @@ export function NewDeliveryDrawer({
   onCreated,
   onStopsChange,
   onDepartureChange,
+  onRouteChange,
 }: NewDeliveryDrawerProps) {
   const [trucks, setTrucks] = React.useState<ApiTruck[]>([]);
   const [drivers, setDrivers] = React.useState<Driver[]>([]);
@@ -117,6 +121,10 @@ export function NewDeliveryDrawer({
   const [stops, setStops] = React.useState<DraftStop[]>([newDraftStop()]);
   const [submitting, setSubmitting] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
+  const [step, setStep] = React.useState<"form" | "preview">("form");
+  const [routeLoading, setRouteLoading] = React.useState(false);
+  const [routeError, setRouteError] = React.useState<string | null>(null);
+  const [routeSummary, setRouteSummary] = React.useState<{ distanceKm: number; durationSec: number } | null>(null);
 
   // Load reference data when the drawer opens.
   React.useEffect(() => {
@@ -168,11 +176,17 @@ export function NewDeliveryDrawer({
     if (open) return;
     setFormError(null);
     setSubmitting(false);
-  }, [open]);
+    setStep("form");
+    setRouteLoading(false);
+    setRouteError(null);
+    setRouteSummary(null);
+    onRouteChange?.(null);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Map click -> append a new stop in "map" mode and reverse-geocode.
   React.useEffect(() => {
     if (!open) return;
+    if (step === "preview") return;
     if (!mapClickPosition) return;
 
     const [lat, lng] = mapClickPosition;
@@ -242,47 +256,66 @@ export function NewDeliveryDrawer({
     });
   };
 
-  const canSubmit =
+  const readyStops = React.useMemo(
+    () =>
+      stops
+        .map((s) => ({
+          id: s.id,
+          name: s.name.trim(),
+          address: s.address.trim(),
+          lat: Number(s.lat),
+          lng: Number(s.lng),
+        }))
+        .filter(
+          (s) =>
+            s.name.length > 0 &&
+            Number.isFinite(s.lat) &&
+            Number.isFinite(s.lng),
+        ),
+    [stops],
+  );
+
+  const canPreview =
     !!warehouseId &&
     !!truckId &&
     !!plannedStartAt &&
-    stops.some(
-      (s) =>
-        Number.isFinite(Number(s.lat)) &&
-        Number.isFinite(Number(s.lng)) &&
-        s.name.trim().length > 0,
-    );
+    readyStops.length > 0;
+
+  const selectedWarehouse = warehouses.find((w) => w._id === warehouseId);
+  const selectedTruck = trucks.find((t) => t._id === truckId);
+  const selectedDriver = drivers.find((d) => d.id === driverId);
+
+  const goToPreview = async () => {
+    if (!canPreview) return;
+    setFormError(null);
+    setRouteError(null);
+    setRouteSummary(null);
+    onRouteChange?.(null);
+    setStep("preview");
+    setRouteLoading(true);
+
+    try {
+      const wh = warehouses.find((w) => w._id === warehouseId);
+      if (!wh) throw new Error("Entrepôt introuvable");
+      const result = await ApiItineraries.previewRoute({
+        origin: wh.location,
+        stops: readyStops.map((s) => ({ lat: s.lat, lng: s.lng })),
+      });
+      onRouteChange?.(result.polyline as LatLng[]);
+      setRouteSummary({
+        distanceKm: result.totalDistanceKilometers,
+        durationSec: result.totalDurationSeconds,
+      });
+    } catch (err) {
+      setRouteError(err instanceof Error ? err.message : "Erreur lors du calcul du parcours");
+    } finally {
+      setRouteLoading(false);
+    }
+  };
 
   const submit = async () => {
     if (submitting) return;
     setFormError(null);
-
-    const readyStops = stops
-      .map((s) => ({
-        name: s.name.trim(),
-        address: s.address.trim(),
-        lat: Number(s.lat),
-        lng: Number(s.lng),
-      }))
-      .filter(
-        (s) =>
-          s.name.length > 0 &&
-          Number.isFinite(s.lat) &&
-          Number.isFinite(s.lng),
-      );
-
-    if (!warehouseId) {
-      setFormError("Choisis un entrepôt de départ.");
-      return;
-    }
-    if (!truckId) {
-      setFormError("Choisis un camion.");
-      return;
-    }
-    if (readyStops.length === 0) {
-      setFormError("Ajoute au moins une étape avec nom + coordonnées.");
-      return;
-    }
 
     try {
       setSubmitting(true);
@@ -298,11 +331,11 @@ export function NewDeliveryDrawer({
         driverId: driverId || undefined,
       });
 
-      // Reset & close.
       setStops([newDraftStop()]);
       setTruckId("");
       setDriverId("");
       setWarehouseId("");
+      setStep("form");
       onCreated?.();
       onClose();
     } catch (err) {
@@ -338,7 +371,7 @@ export function NewDeliveryDrawer({
       <div className="tt-drawer__driver">
         <div className="tt-drawer__driver-name">Planifier une tournée</div>
         <div className="tt-drawer__driver-meta">
-          Entrepôt → étapes → retour entrepôt
+          {step === "form" ? "Entrepôt → étapes → retour entrepôt" : "Vérifiez le parcours sur la carte puis validez"}
         </div>
       </div>
 
@@ -348,214 +381,338 @@ export function NewDeliveryDrawer({
         </div>
       ) : null}
 
-      <section className="tt-drawer__section">
-        <div className="tt-drawer__section-head">
-          <h3>Assignation</h3>
-        </div>
+      {step === "form" ? (
+        <>
+          <section className="tt-drawer__section">
+            <div className="tt-drawer__section-head">
+              <h3>Assignation</h3>
+            </div>
 
-        <label className="tt-drawer__form" style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
-          <span style={{ fontSize: 12, color: "var(--ink-3)", fontWeight: 500 }}>Entrepôt de départ</span>
-          <select
-            value={warehouseId}
-            onChange={(e) => setWarehouseId(e.target.value)}
-            className="tt-drawer__select"
-          >
-            <option value="">— Sélectionner —</option>
-            {warehouses.map((w) => (
-              <option key={w._id} value={w._id}>
-                {w.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="tt-drawer__form" style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
-          <span style={{ fontSize: 12, color: "var(--ink-3)", fontWeight: 500 }}>Camion</span>
-          <select
-            value={truckId}
-            onChange={(e) => setTruckId(e.target.value)}
-            className="tt-drawer__select"
-          >
-            <option value="">— Sélectionner —</option>
-            {trucks.map((t) => (
-              <option key={t._id} value={t._id}>
-                {t.plateNumber} · {t.fuelType} · {t.packageCapacity} colis
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="tt-drawer__form" style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
-          <span style={{ fontSize: 12, color: "var(--ink-3)", fontWeight: 500 }}>Chauffeur (optionnel)</span>
-          <select
-            value={driverId}
-            onChange={(e) => setDriverId(e.target.value)}
-            className="tt-drawer__select"
-          >
-            <option value="">— Aucun —</option>
-            {drivers.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.firstName} {d.lastName}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="tt-drawer__form" style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
-          <span style={{ fontSize: 12, color: "var(--ink-3)", fontWeight: 500 }}>Départ prévu</span>
-          <input
-            type="datetime-local"
-            value={plannedStartAt}
-            onChange={(e) => setPlannedStartAt(e.target.value)}
-            className="tt-drawer__input"
-          />
-        </label>
-      </section>
-
-      <section className="tt-drawer__section">
-        <div className="tt-drawer__section-head">
-          <h3>Étapes</h3>
-          <div className="tt-drawer__edit-toolbar">
-            <button type="button" className="tt-drawer__more" onClick={addStop}>
-              + Ajouter une étape
-            </button>
-          </div>
-        </div>
-
-        <div className="tt-drawer__reorder-hint">
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden fill="currentColor">
-            <circle cx="12" cy="12" r="2" />
-          </svg>
-          <span>
-            Astuce : clique sur la carte pour ajouter une étape par coordonnées
-            (l&apos;adresse sera devinée).
-          </span>
-        </div>
-
-        <ol className="tt-drawer__stops" data-editing>
-          {stops.map((stop, i) => {
-            const lat = Number(stop.lat);
-            const lng = Number(stop.lng);
-            const ready = Number.isFinite(lat) && Number.isFinite(lng) && stop.name.trim().length > 0;
-            return (
-              <li
-                key={stop.id}
-                className="tt-drawer__stop"
-                data-editing
-                data-current={ready || undefined}
+            <label className="tt-drawer__form" style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
+              <span style={{ fontSize: 12, color: "var(--ink-3)", fontWeight: 500 }}>Entrepôt de départ</span>
+              <select
+                value={warehouseId}
+                onChange={(e) => setWarehouseId(e.target.value)}
+                className="tt-drawer__select"
               >
-                <div className="tt-drawer__stop-rail">
-                  <span className="tt-drawer__stop-bullet">{i + 1}</span>
-                </div>
-                <div className="tt-drawer__stop-body">
-                  <div className="tt-drawer__stop-head">
-                    <span className="tt-drawer__stop-name">
-                      {stop.name.trim() || `Étape ${i + 1}`}
-                    </span>
-                    <button
-                      type="button"
-                      className="tt-drawer__more"
-                      data-danger
-                      onClick={() => removeStop(stop.id)}
-                    >
-                      Supprimer
-                    </button>
-                  </div>
+                <option value="">— Sélectionner —</option>
+                {warehouses.map((w) => (
+                  <option key={w._id} value={w._id}>
+                    {w.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-                  <div className="tt-drawer__form-row tt-drawer__form-row--address">
-                    <select
-                      value={stop.mode}
-                      onChange={(e) => updateStop(stop.id, { mode: e.target.value as StopMode })}
-                      className="tt-drawer__select"
-                    >
-                      <option value="address">Par adresse</option>
-                      <option value="coords">Par coordonnées</option>
-                      <option value="map">Clic carte</option>
-                    </select>
-                    <input
-                      type="text"
-                      value={stop.name}
-                      onChange={(e) => updateStop(stop.id, { name: e.target.value })}
-                      placeholder="Nom (client, magasin…)"
-                      className="tt-drawer__input"
-                    />
-                  </div>
+            <label className="tt-drawer__form" style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
+              <span style={{ fontSize: 12, color: "var(--ink-3)", fontWeight: 500 }}>Camion</span>
+              <select
+                value={truckId}
+                onChange={(e) => setTruckId(e.target.value)}
+                className="tt-drawer__select"
+              >
+                <option value="">— Sélectionner —</option>
+                {trucks.map((t) => (
+                  <option key={t._id} value={t._id}>
+                    {t.plateNumber} · {t.fuelType} · {t.packageCapacity} colis
+                  </option>
+                ))}
+              </select>
+            </label>
 
-                  {stop.mode === "address" ? (
-                    <>
-                      <input
-                        type="text"
-                        value={stop.address}
-                        onChange={(e) => updateStop(stop.id, { address: e.target.value })}
-                        placeholder="Adresse complète"
-                        className="tt-drawer__input"
-                      />
-                      <div className="tt-drawer__actions">
+            <label className="tt-drawer__form" style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
+              <span style={{ fontSize: 12, color: "var(--ink-3)", fontWeight: 500 }}>Chauffeur (optionnel)</span>
+              <select
+                value={driverId}
+                onChange={(e) => setDriverId(e.target.value)}
+                className="tt-drawer__select"
+              >
+                <option value="">— Aucun —</option>
+                {drivers.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.firstName} {d.lastName}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="tt-drawer__form" style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
+              <span style={{ fontSize: 12, color: "var(--ink-3)", fontWeight: 500 }}>Départ prévu</span>
+              <input
+                type="datetime-local"
+                value={plannedStartAt}
+                onChange={(e) => setPlannedStartAt(e.target.value)}
+                className="tt-drawer__input"
+              />
+            </label>
+          </section>
+
+          <section className="tt-drawer__section">
+            <div className="tt-drawer__section-head">
+              <h3>Étapes</h3>
+              <div className="tt-drawer__edit-toolbar">
+                <button type="button" className="tt-drawer__more" onClick={addStop}>
+                  + Ajouter une étape
+                </button>
+              </div>
+            </div>
+
+            <div className="tt-drawer__reorder-hint">
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden fill="currentColor">
+                <circle cx="12" cy="12" r="2" />
+              </svg>
+              <span>
+                Astuce : clique sur la carte pour ajouter une étape par coordonnées
+                (l&apos;adresse sera devinée).
+              </span>
+            </div>
+
+            <ol className="tt-drawer__stops" data-editing>
+              {stops.map((stop, i) => {
+                const lat = Number(stop.lat);
+                const lng = Number(stop.lng);
+                const ready = Number.isFinite(lat) && Number.isFinite(lng) && stop.name.trim().length > 0;
+                return (
+                  <li
+                    key={stop.id}
+                    className="tt-drawer__stop"
+                    data-editing
+                    data-current={ready || undefined}
+                  >
+                    <div className="tt-drawer__stop-rail">
+                      <span className="tt-drawer__stop-bullet">{i + 1}</span>
+                    </div>
+                    <div className="tt-drawer__stop-body">
+                      <div className="tt-drawer__stop-head">
+                        <span className="tt-drawer__stop-name">
+                          {stop.name.trim() || `Étape ${i + 1}`}
+                        </span>
                         <button
                           type="button"
-                          className="tt-drawer__more tt-drawer__more--primary"
-                          onClick={() => handleGeocode(stop.id)}
+                          className="tt-drawer__more"
+                          data-danger
+                          onClick={() => removeStop(stop.id)}
                         >
-                          Géolocaliser
+                          Supprimer
                         </button>
-                        <span className="tt-drawer__addr-preview">
-                          {ready ? `→ ${lat.toFixed(5)}, ${lng.toFixed(5)}` : "↑ Clique pour obtenir les coordonnées"}
-                        </span>
                       </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="tt-drawer__form-row tt-drawer__form-row--coords">
+
+                      <div className="tt-drawer__form-row tt-drawer__form-row--address">
+                        <select
+                          value={stop.mode}
+                          onChange={(e) => updateStop(stop.id, { mode: e.target.value as StopMode })}
+                          className="tt-drawer__select"
+                        >
+                          <option value="address">Par adresse</option>
+                          <option value="coords">Par coordonnées</option>
+                          <option value="map">Clic carte</option>
+                        </select>
                         <input
-                          type="number"
-                          value={stop.lat}
-                          onChange={(e) => updateStop(stop.id, { lat: e.target.value })}
-                          placeholder="Latitude"
-                          className="tt-drawer__input"
-                        />
-                        <input
-                          type="number"
-                          value={stop.lng}
-                          onChange={(e) => updateStop(stop.id, { lng: e.target.value })}
-                          placeholder="Longitude"
+                          type="text"
+                          value={stop.name}
+                          onChange={(e) => updateStop(stop.id, { name: e.target.value })}
+                          placeholder="Nom (client, magasin…)"
                           className="tt-drawer__input"
                         />
                       </div>
-                      <input
-                        type="text"
-                        value={stop.address}
-                        onChange={(e) => updateStop(stop.id, { address: e.target.value })}
-                        placeholder="Adresse (facultative)"
-                        className="tt-drawer__input"
-                      />
-                    </>
-                  )}
+
+                      {stop.mode === "address" ? (
+                        <>
+                          <input
+                            type="text"
+                            value={stop.address}
+                            onChange={(e) => updateStop(stop.id, { address: e.target.value })}
+                            placeholder="Adresse complète"
+                            className="tt-drawer__input"
+                          />
+                          <div className="tt-drawer__actions">
+                            <button
+                              type="button"
+                              className="tt-drawer__more tt-drawer__more--primary"
+                              onClick={() => handleGeocode(stop.id)}
+                            >
+                              Géolocaliser
+                            </button>
+                            <span className="tt-drawer__addr-preview">
+                              {ready ? `→ ${lat.toFixed(5)}, ${lng.toFixed(5)}` : "↑ Clique pour obtenir les coordonnées"}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="tt-drawer__form-row tt-drawer__form-row--coords">
+                            <input
+                              type="number"
+                              value={stop.lat}
+                              onChange={(e) => updateStop(stop.id, { lat: e.target.value })}
+                              placeholder="Latitude"
+                              className="tt-drawer__input"
+                            />
+                            <input
+                              type="number"
+                              value={stop.lng}
+                              onChange={(e) => updateStop(stop.id, { lng: e.target.value })}
+                              placeholder="Longitude"
+                              className="tt-drawer__input"
+                            />
+                          </div>
+                          <input
+                            type="text"
+                            value={stop.address}
+                            onChange={(e) => updateStop(stop.id, { address: e.target.value })}
+                            placeholder="Adresse (facultative)"
+                            className="tt-drawer__input"
+                          />
+                        </>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+
+          {formError ? (
+            <div className="tt-drawer__alert" style={{ margin: "0 16px 12px" }}>
+              {formError}
+            </div>
+          ) : null}
+
+          <footer className="tt-drawer__foot" style={{ justifyContent: "flex-end", gap: 8 }}>
+            <button type="button" className="tt-drawer__more" onClick={onClose}>
+              Annuler
+            </button>
+            <button
+              type="button"
+              className="tt-drawer__more tt-drawer__more--primary"
+              onClick={goToPreview}
+              disabled={!canPreview}
+            >
+              Voir le parcours
+            </button>
+          </footer>
+        </>
+      ) : (
+        <>
+          <section className="tt-drawer__section">
+            <div className="tt-drawer__section-head">
+              <h3>Récapitulatif</h3>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                <span style={{ color: "var(--ink-3)" }}>Entrepôt</span>
+                <span style={{ fontWeight: 500 }}>{selectedWarehouse?.name ?? "—"}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                <span style={{ color: "var(--ink-3)" }}>Camion</span>
+                <span style={{ fontWeight: 500 }}>{selectedTruck?.plateNumber ?? "—"}</span>
+              </div>
+              {selectedDriver ? (
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                  <span style={{ color: "var(--ink-3)" }}>Chauffeur</span>
+                  <span style={{ fontWeight: 500 }}>{selectedDriver.firstName} {selectedDriver.lastName}</span>
                 </div>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
+              ) : null}
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                <span style={{ color: "var(--ink-3)" }}>Départ prévu</span>
+                <span style={{ fontWeight: 500 }}>
+                  {new Date(plannedStartAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
+                </span>
+              </div>
 
-      {formError ? (
-        <div className="tt-drawer__alert" style={{ margin: "0 16px 12px" }}>
-          {formError}
-        </div>
-      ) : null}
+              {routeLoading ? (
+                <div style={{ fontSize: 13, color: "var(--ink-3)", paddingTop: 4 }}>
+                  Calcul du parcours…
+                </div>
+              ) : routeError ? (
+                <div style={{ fontSize: 13, color: "var(--danger)", paddingTop: 4 }}>
+                  {routeError}
+                </div>
+              ) : routeSummary ? (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                    <span style={{ color: "var(--ink-3)" }}>Distance</span>
+                    <span style={{ fontWeight: 500 }}>{routeSummary.distanceKm.toFixed(1)} km</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                    <span style={{ color: "var(--ink-3)" }}>Durée estimée</span>
+                    <span style={{ fontWeight: 500 }}>
+                      {Math.floor(routeSummary.durationSec / 3600) > 0
+                        ? `${Math.floor(routeSummary.durationSec / 3600)}h `
+                        : ""}
+                      {Math.floor((routeSummary.durationSec % 3600) / 60)} min
+                    </span>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </section>
 
-      <footer className="tt-drawer__foot" style={{ justifyContent: "flex-end", gap: 8 }}>
-        <button type="button" className="tt-drawer__more" onClick={onClose} disabled={submitting}>
-          Annuler
-        </button>
-        <button
-          type="button"
-          className="tt-drawer__more tt-drawer__more--primary"
-          onClick={submit}
-          disabled={!canSubmit || submitting}
-        >
-          {submitting ? "Création…" : "Créer le trajet"}
-        </button>
-      </footer>
+          <section className="tt-drawer__section">
+            <div className="tt-drawer__section-head">
+              <h3>Étapes ({readyStops.length})</h3>
+            </div>
+            <ol className="tt-drawer__stops">
+              {readyStops.map((stop, i) => (
+                <li key={stop.id} className="tt-drawer__stop" data-current>
+                  <div className="tt-drawer__stop-rail">
+                    <span className="tt-drawer__stop-bullet">{i + 1}</span>
+                  </div>
+                  <div className="tt-drawer__stop-body">
+                    <div className="tt-drawer__stop-head">
+                      <span className="tt-drawer__stop-name">{stop.name}</span>
+                    </div>
+                    {stop.address ? (
+                      <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{stop.address}</span>
+                    ) : (
+                      <span style={{ fontSize: 12, color: "var(--ink-4)" }}>
+                        {stop.lat.toFixed(5)}, {stop.lng.toFixed(5)}
+                      </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+
+            <div className="tt-drawer__reorder-hint" style={{ marginTop: 12 }}>
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden fill="currentColor">
+                <circle cx="12" cy="12" r="2" />
+              </svg>
+              <span>
+                {routeLoading
+                  ? "Tracé du parcours réel en cours…"
+                  : "Le tracé réel est visible sur la carte à gauche."}
+              </span>
+            </div>
+          </section>
+
+          {formError ? (
+            <div className="tt-drawer__alert" style={{ margin: "0 16px 12px" }}>
+              {formError}
+            </div>
+          ) : null}
+
+          <footer className="tt-drawer__foot" style={{ justifyContent: "flex-end", gap: 8 }}>
+            <button
+              type="button"
+              className="tt-drawer__more"
+              onClick={() => { setStep("form"); setFormError(null); setRouteError(null); onRouteChange?.(null); }}
+              disabled={submitting}
+            >
+              Modifier
+            </button>
+            <button
+              type="button"
+              className="tt-drawer__more tt-drawer__more--primary"
+              onClick={submit}
+              disabled={submitting}
+            >
+              {submitting ? "Création…" : "Valider et créer"}
+            </button>
+          </footer>
+        </>
+      )}
     </aside>
   );
 }

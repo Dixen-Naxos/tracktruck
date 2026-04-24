@@ -37,6 +37,8 @@ interface Props {
   pendingStops?: Array<{ position: LatLng; name: string }> | null;
   /** Departure warehouse for the delivery being built. */
   pendingOrigin?: LatLng | null;
+  /** Real road polyline returned by the preview API — replaces the straight-line dashes. */
+  pendingRoute?: LatLng[] | null;
 }
 
 function MapClickHandler({ onMapClick }: { onMapClick?: (position: LatLng) => void }) {
@@ -98,6 +100,19 @@ function FocusOnSelected({
   return null;
 }
 
+function FitBounds({ points }: { points: LatLng[] | null }) {
+  const map = useMap();
+  const prevLen = React.useRef(0);
+  React.useEffect(() => {
+    if (!points || points.length < 2) return;
+    if (points.length === prevLen.current) return;
+    prevLen.current = points.length;
+    const bounds = L.latLngBounds(points.map(([la, ln]) => [la, ln]));
+    map.flyToBounds(bounds, { padding: [60, 60], duration: 0.7 });
+  }, [map, points]);
+  return null;
+}
+
 export default function MapClient({
   trucks = TRUCKS_LIVE,
   detailFocus = false,
@@ -107,6 +122,7 @@ export default function MapClient({
   onMapClick,
   pendingStops,
   pendingOrigin,
+  pendingRoute,
 }: Props) {
   const selectedTruck =
     trucks.find((t) => t.id === selectedTruckId) ?? null;
@@ -230,7 +246,13 @@ export default function MapClient({
               icon={buildStopIcon("delivery", s.name)}
             />
           ))}
-          {pendingOrigin && pendingStops.length >= 1 ? (
+          {/* Real road polyline (preview step) replaces the straight-line dashes */}
+          {pendingRoute && pendingRoute.length >= 2 ? (
+            <Polyline
+              positions={pendingRoute}
+              pathOptions={{ color: "var(--accent)", weight: 5, opacity: 0.85 }}
+            />
+          ) : pendingOrigin ? (
             <Polyline
               positions={[
                 pendingOrigin,
@@ -247,6 +269,13 @@ export default function MapClient({
           ) : null}
         </>
       ) : null}
+      <FitBounds
+        points={
+          pendingRoute && pendingRoute.length >= 2
+            ? pendingRoute
+            : null
+        }
+      />
 
       <FocusOnSelected
         truck={selectedTruck}

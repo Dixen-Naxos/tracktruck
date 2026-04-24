@@ -187,6 +187,24 @@ export const ApiDeliveries = {
     request<ApiDelivery>("POST", "/deliveries", input),
 };
 
+// ─── ApiItineraries ───────────────────────────────────────────────────────────
+
+export type ApiPreviewRouteInput = {
+  origin: ApiLatLng;
+  stops: ApiLatLng[];
+};
+
+export type ApiPreviewRouteResult = {
+  polyline: [number, number][];
+  totalDistanceKilometers: number;
+  totalDurationSeconds: number;
+};
+
+export const ApiItineraries = {
+  previewRoute: (input: ApiPreviewRouteInput) =>
+    request<ApiPreviewRouteResult>("POST", "/itineraries/preview", input),
+};
+
 // ─── ApiOrders ────────────────────────────────────────────────────────────────
 
 // export const ApiOrders = {
