@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Card, PageHeader, SearchInput } from "@/components/primitives";
 import { Icon } from "@/components/icons";
-import { listDashcamVideos, getDashcamVideoUrl, retainDashcamVideo, unretainDashcamVideo } from "@/lib/api";
+import { listDashcamVideos, getDashcamVideoUrl, retainDashcamVideo, unretainDashcamVideo, getVideoPolicy, setVideoPolicy } from "@/lib/api";
 import type { DashcamVideo } from "@/lib/types";
 
 function formatDate(iso: string) {
@@ -153,6 +153,63 @@ function VideoCard({ video, animIndex }: { video: DashcamVideo; animIndex: numbe
   );
 }
 
+const RETENTION_OPTIONS = [
+  { label: "1 jour",     days: 1 },
+  { label: "7 jours",    days: 7 },
+  { label: "14 jours",   days: 14 },
+  { label: "30 jours",   days: 30 },
+  { label: "60 jours",   days: 60 },
+  { label: "90 jours",   days: 90 },
+];
+
+function PolicyBar() {
+  const [current, setCurrent] = React.useState<number | null>(null);
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    getVideoPolicy().then((p) => setCurrent(p.retentionDays)).catch(() => {});
+  }, []);
+
+  const handleChange = async (days: number) => {
+    setSaving(true);
+    try {
+      const updated = await setVideoPolicy(days);
+      setCurrent(updated.retentionDays);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3 rounded-[12px] px-4 py-3" style={{ background: "var(--surface)", border: "1px solid var(--line)" }}>
+      <span className="shrink-0 text-[12.5px]" style={{ color: "var(--ink-3)" }}>
+        Suppression auto après
+      </span>
+      <div className="flex flex-wrap gap-1.5">
+        {RETENTION_OPTIONS.map((opt) => {
+          const active = current === opt.days;
+          return (
+            <button
+              key={opt.days}
+              onClick={() => handleChange(opt.days)}
+              disabled={saving || current === null}
+              className="cursor-pointer rounded-lg border-0 px-3 py-1 text-[12px] font-[500] transition-opacity disabled:opacity-40"
+              style={
+                active
+                  ? { background: "var(--accent)", color: "var(--accent-ink)" }
+                  : { background: "var(--surface-2)", color: "var(--ink-2)", border: "1px solid var(--line)" }
+              }
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+      {saving && <span className="text-[12px]" style={{ color: "var(--ink-4)" }}>…</span>}
+    </div>
+  );
+}
+
 function DateTimeInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <label
@@ -200,7 +257,11 @@ export default function DashcamPage() {
       <>
         <PageHeader title="Dashcam"/>
 
-        <div className="mt-5 mb-[28px] flex flex-wrap items-center gap-3">
+        <div className="mt-5 mb-4">
+          <PolicyBar />
+        </div>
+
+        <div className="mb-[28px] flex flex-wrap items-center gap-3">
           <div className="min-w-[280px] flex-1">
             <SearchInput value={search} onChange={setSearch} placeholder="Rechercher chauffeur, camion…" />
           </div>
