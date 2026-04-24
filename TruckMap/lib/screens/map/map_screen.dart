@@ -101,9 +101,13 @@ class _MapScreenState extends State<MapScreen> {
               return const Center(child: Text('Aucun itinéraire'));
             }
 
-            final stopPositions =
-                itinerary.orderedStops.map((s) => s.location).toList();
-            final bounds = LatLngBounds.fromPoints(stopPositions);
+            final allPoints = [
+              ...itinerary.orderedStops.map((s) => s.location),
+              ...itinerary.routePoints,
+            ];
+            final bounds = LatLngBounds.fromPoints(
+              allPoints.isNotEmpty ? allPoints : itinerary.orderedStops.map((s) => s.location).toList(),
+            );
 
             return Column(
               children: [
@@ -132,13 +136,16 @@ class _MapScreenState extends State<MapScreen> {
                           WaypointMarkers(waypoints: itinerary.waypoints),
                           UtilityPointMarkers(
                               points: itinerary.utilityPoints),
-                          RoadSignMarkers(signs: itinerary.roadSigns),
+                          RoadSignMarkers(signs: itinerary.blockingSigns),
                           MarkerLayer(
-                            markers: itinerary.orderedStops
-                                .asMap()
-                                .entries
-                                .map((e) => _stopMarker(e.key + 1, e.value))
-                                .toList(),
+                            markers: [
+                              if (itinerary.startPoint != null)
+                                _warehouseMarker(itinerary.startPoint!),
+                              ...itinerary.orderedStops
+                                  .asMap()
+                                  .entries
+                                  .map((e) => _stopMarker(e.key + 1, e.value)),
+                            ],
                           ),
                           if (locationState.position != null)
                             UserLocationMarker(
@@ -179,6 +186,27 @@ class _MapScreenState extends State<MapScreen> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Marker _warehouseMarker(ItineraryStop stop) {
+    return Marker(
+      point: stop.location,
+      width: 44,
+      height: 44,
+      child: Tooltip(
+        message: '${stop.name}\n${stop.address}',
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.orange.shade700,
+            shape: BoxShape.circle,
+            boxShadow: const [
+              BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+            ],
+          ),
+          child: const Icon(Icons.warehouse, color: Colors.white, size: 24),
         ),
       ),
     );

@@ -55,6 +55,8 @@ export type BlockingSign = {
 export type ComputeItineraryResult = {
   totalDistanceKilometers: number;
   totalDurationSeconds: number;
+  /** Start/end point (warehouse or store used as origin) */
+  startPoint: ItineraryStop;
   orderedStops: ItineraryStop[];
   orderedStopIds: ObjectId[];
   /** Google encoded polyline of the full route (for drawing on map) */
@@ -304,6 +306,12 @@ export async function computeItinerary(
   return {
     totalDistanceKilometers,
     totalDurationSeconds,
+    startPoint: {
+      id: startPointId.toHexString(),
+      name: startPoint.name,
+      address: startPoint.address,
+      location: startPoint.location,
+    },
     orderedStops,
     orderedStopIds,
     encodedPolyline: route.polyline?.encodedPolyline ?? "",
