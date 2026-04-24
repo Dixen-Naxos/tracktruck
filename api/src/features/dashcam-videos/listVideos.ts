@@ -8,6 +8,8 @@ type AggResult = {
   driverId: ObjectId;
   truckId?: ObjectId;
   deliveryId?: ObjectId;
+  retained?: boolean;
+  retentionNote?: string;
   driver?: { _id: ObjectId; firstName?: string; lastName?: string };
 };
 
@@ -18,6 +20,8 @@ export type DashcamVideoSummary = {
   driver: { id: string; firstName: string; lastName: string } | null;
   truckId?: string;
   deliveryId?: string;
+  retained: boolean;
+  retentionNote?: string;
 };
 
 export async function listDashcamVideos(from?: Date, to?: Date): Promise<DashcamVideoSummary[]> {
@@ -51,5 +55,7 @@ export async function listDashcamVideos(from?: Date, to?: Date): Promise<Dashcam
       : null,
     truckId: v.truckId?.toHexString(),
     deliveryId: v.deliveryId?.toHexString(),
+    retained: v.retained ?? false,
+    retentionNote: v.retentionNote,
   }));
 }

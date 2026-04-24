@@ -8,6 +8,10 @@ export type DashcamVideo = {
   driverId: ObjectId;
   truckId?: ObjectId;
   deliveryId?: ObjectId;
+  retained?: boolean;
+  retentionNote?: string;
+  retainedAt?: Date;
+  retainedBy?: ObjectId;
 };
 
 export const dashcamVideos = db.collection<DashcamVideo>("dashcamVideos");
