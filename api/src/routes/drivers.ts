@@ -37,20 +37,31 @@ const updateDriverSchema = z
   );
 
 export const driversRoute = new Hono<AuthEnv>()
-  .use("*", requireAuth, requireRole("admin"))
-  .post("/", validator("json", createDriverSchema), async (c) => {
-    const driver = await createDriver(c.req.valid("json"));
-    return c.json(driver, 201);
-  })
-  .get("/", async (c) => {
+  .use("*", requireAuth)
+  .post(
+    "/",
+    requireRole("admin"),
+    validator("json", createDriverSchema),
+    async (c) => {
+      const driver = await createDriver(c.req.valid("json"));
+      return c.json(driver, 201);
+    },
+  )
+  .get("/", requireRole("admin"), async (c) => {
     return c.json(await listDrivers());
   })
-  .get("/:id", validator("param", idParamSchema), async (c) => {
-    const { id } = c.req.valid("param");
-    return c.json(await getDriver(id));
-  })
+  .get(
+    "/:id",
+    requireRole("admin"),
+    validator("param", idParamSchema),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      return c.json(await getDriver(id));
+    },
+  )
   .patch(
     "/:id",
+    requireRole("admin"),
     validator("param", idParamSchema),
     validator("json", updateDriverSchema),
     async (c) => {
@@ -58,8 +69,13 @@ export const driversRoute = new Hono<AuthEnv>()
       return c.json(await updateDriver(id, c.req.valid("json")));
     },
   )
-  .delete("/:id", validator("param", idParamSchema), async (c) => {
-    const { id } = c.req.valid("param");
-    await deleteDriver(id);
-    return c.body(null, 204);
-  });
+  .delete(
+    "/:id",
+    requireRole("admin"),
+    validator("param", idParamSchema),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      await deleteDriver(id);
+      return c.body(null, 204);
+    },
+  );

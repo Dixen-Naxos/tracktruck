@@ -80,7 +80,9 @@ async function main() {
 
   // Every day at 03:00
   schedule("0 3 * * *", () => {
-    cleanupOldVideos().catch((err) => console.error("[cleanup] Cron error:", err));
+    cleanupOldVideos().catch((err) =>
+      console.error("[cleanup] Cron error:", err),
+    );
   });
 
   await serve(
