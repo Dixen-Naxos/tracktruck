@@ -7,7 +7,6 @@ import { createDelivery } from "../features/deliveries/createDelivery.js";
 import { listDeliveries } from "../features/deliveries/listDeliveries.js";
 import { getDeliveryFuelConsumption } from "../features/deliveries/getFuelConsumption.js";
 import { getDeliveryTripCost } from "../features/deliveries/getTripCost.js";
-import { computeItinerary } from "../features/itineraries/computeItinerary.js";
 import { idParamSchema, zObjectId } from "../utils/idParamSchema.js";
 import { assignDriverToDelivery } from "../features/deliveries/assignDriver.js";
 
@@ -22,9 +21,12 @@ const deliveryIdParamSchema = z.object({
 
 const createDeliverySchema = z.object({
   departureWarehouseId: objectIdSchema,
-  /** IDs of stores to visit (order will be optimized by Google) */
   storeIds: z.array(objectIdSchema).min(1),
   plannedStartAt: z.iso.datetime().transform((s) => new Date(s)),
+  totalDistanceKm: z.number().nonnegative(),
+  totalDurationSeconds: z.number().nonnegative().int(),
+  roadSignIds: z.array(z.string()).default([]),
+  wasRerouted: z.boolean().default(false),
 });
 
 export const deliveriesRoute = new Hono<AuthEnv>()
@@ -42,11 +44,12 @@ export const deliveriesRoute = new Hono<AuthEnv>()
           "application/json": {
             example: {
               departureWarehouseId: "684a1f2e3c4b5d6e7f8a9b0c",
-              storeIds: [
-                "684a1f2e3c4b5d6e7f8a9b0d",
-                "684a1f2e3c4b5d6e7f8a9b0e",
-              ],
+              storeIds: ["684a1f2e3c4b5d6e7f8a9b0d", "684a1f2e3c4b5d6e7f8a9b0e"],
               plannedStartAt: "2026-04-25T08:00:00.000Z",
+              totalDistanceKm: 18.3,
+              totalDurationSeconds: 3240,
+              roadSignIds: [],
+              wasRerouted: false,
             },
           },
         },
@@ -61,20 +64,8 @@ export const deliveriesRoute = new Hono<AuthEnv>()
     requireRole("admin"),
     validator("json", createDeliverySchema),
     async (c) => {
-      const { departureWarehouseId, storeIds, plannedStartAt } =
-        c.req.valid("json");
-
-      const itineraryResult = await computeItinerary({
-        startPointId: departureWarehouseId,
-        toVisitIds: storeIds,
-      });
-
-      const delivery = await createDelivery({
-        departureWarehouseId,
-        plannedStartAt,
-        itineraryResult,
-      });
-
+      const body = c.req.valid("json");
+      const delivery = await createDelivery(body);
       return c.json(delivery, 201);
     },
   )

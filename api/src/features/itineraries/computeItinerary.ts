@@ -34,6 +34,8 @@ export type ComputeItineraryInput = {
   startPointId: ObjectId;
   toVisitIds: ObjectId[];
   truck?: Partial<TruckProfile>;
+  /** Planned departure time — used for traffic-aware routing. Defaults to now. */
+  departureTime?: Date;
 };
 
 export type ItineraryStop = {
@@ -90,6 +92,7 @@ async function callRoutesApi(
   origin: string,
   destination: string,
   intermediates: string[],
+  departureTime: Date,
 ): Promise<GoogleRoute> {
   const res = await fetch(ROUTES_API_URL, {
     method: "POST",
@@ -110,6 +113,7 @@ async function callRoutesApi(
       travelMode: "DRIVE",
       optimizeWaypointOrder: true,
       routingPreference: "TRAFFIC_AWARE",
+      departureTime: departureTime.toISOString(),
       languageCode: "fr-FR",
       units: "METRIC",
     }),
@@ -195,7 +199,7 @@ export async function computeItinerary(
   if (!apiKey) throw new Error("GOOGLE_MAPS_API_KEY is not set");
 
   const truck: TruckProfile = { ...DEFAULT_TRUCK, ...input.truck };
-  const { startPointId, toVisitIds } = input;
+  const { startPointId, toVisitIds, departureTime = new Date() } = input;
 
   const startPoint = await resolvePoint(startPointId);
   const stopPoints = await Promise.all(toVisitIds.map(resolvePoint));
@@ -206,6 +210,7 @@ export async function computeItinerary(
     startPoint.address,
     startPoint.address,
     stopPoints.map((s) => s.address),
+    departureTime,
   );
 
   const polylinePoints = route.polyline?.encodedPolyline
@@ -238,6 +243,7 @@ export async function computeItinerary(
         startPoint.address,
         startPoint.address,
         reroutedIntermediates,
+        departureTime,
       );
 
       const newPolyline = reroutedRoute.polyline?.encodedPolyline

@@ -1,32 +1,35 @@
 import { ObjectId } from "mongodb";
 import { HTTPException } from "hono/http-exception";
 import { deliveries, type Delivery } from "../../db/Delivery.js";
-import { warehouses } from "../../db/Warehouse.js";
-import type { ComputeItineraryResult } from "../itineraries/computeItinerary.js";
 
 export type CreateDeliveryInput = {
   departureWarehouseId: ObjectId;
   plannedStartAt: Date;
-  itineraryResult: ComputeItineraryResult;
+  storeIds: ObjectId[];
+  totalDistanceKm: number;
+  totalDurationSeconds: number;
+  roadSignIds: string[];
+  wasRerouted: boolean;
 };
 
 export async function createDelivery(
   input: CreateDeliveryInput,
 ): Promise<Delivery> {
-  const { departureWarehouseId, plannedStartAt, itineraryResult } = input;
-  const { orderedStopIds, totalDistanceKilometers, totalDurationSeconds } =
-    itineraryResult;
-
-  // Verify departure warehouse exists
-  const warehouse = await warehouses.findOne({ _id: departureWarehouseId });
-  if (!warehouse)
-    throw new HTTPException(404, { message: "Departure warehouse not found" });
+  const {
+    departureWarehouseId,
+    plannedStartAt,
+    storeIds,
+    totalDistanceKm,
+    totalDurationSeconds,
+    roadSignIds,
+    wasRerouted,
+  } = input;
 
   // Dedup: same warehouse + same ordered stores + same plannedStartAt → skip
   const existing = await deliveries.findOne({
     departureWarehouseId,
     plannedStartAt,
-    storeIds: { $eq: orderedStopIds },
+    storeIds: { $eq: storeIds },
   });
   if (existing) {
     throw new HTTPException(409, {
@@ -38,12 +41,14 @@ export async function createDelivery(
   const delivery: Delivery = {
     _id: new ObjectId(),
     departureWarehouseId,
-    storeIds: orderedStopIds,
-    totalDistanceKm: totalDistanceKilometers,
+    storeIds,
+    totalDistanceKm,
     totalDurationSeconds,
     plannedStartAt,
     storeArrivals: [],
     status: "planned",
+    roadSignIds,
+    wasRerouted,
   };
 
   await deliveries.insertOne(delivery);

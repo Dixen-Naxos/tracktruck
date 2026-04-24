@@ -85,7 +85,6 @@ out center tags qt;
   }
 
   if (!res) {
-    // Overpass is unreachable or overloaded — degrade gracefully
     console.warn(`[overpass] All endpoints failed: ${lastError}. Returning empty sign list.`);
     return [];
   }

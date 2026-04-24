@@ -8,6 +8,7 @@ import { zObjectId } from "../utils/idParamSchema.js";
 const computeItinerarySchema = z.object({
   startPointId: zObjectId,
   toVisitIds: z.array(zObjectId).min(1),
+  departureTime: z.iso.datetime().transform((s) => new Date(s)).optional(),
 });
 
 export const itinerariesRoute = new Hono<AuthEnv>().use("*", requireAuth).post(
@@ -28,6 +29,7 @@ export const itinerariesRoute = new Hono<AuthEnv>().use("*", requireAuth).post(
               "684a1f2e3c4b5d6e7f8a9b0e",
               "684a1f2e3c4b5d6e7f8a9b0f",
             ],
+            departureTime: "2026-04-25T08:00:00Z",
           },
         },
       },
@@ -40,8 +42,8 @@ export const itinerariesRoute = new Hono<AuthEnv>().use("*", requireAuth).post(
   }),
   validator("json", computeItinerarySchema),
   async (c) => {
-    const { startPointId, toVisitIds } = c.req.valid("json");
-    const itinerary = await computeItinerary({ startPointId, toVisitIds });
+    const { startPointId, toVisitIds, departureTime } = c.req.valid("json");
+    const itinerary = await computeItinerary({ startPointId, toVisitIds, departureTime });
     return c.json({ itinerary });
   },
 );

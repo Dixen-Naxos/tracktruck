@@ -43,15 +43,15 @@ export async function runSeed(): Promise<SeedResult> {
     },
     {
       _id: new ObjectId(),
-      name: "Entrepôt Lyon Sud",
-      address: "112 Avenue Jean Jaurès, 69007 Lyon",
-      location: { lat: 45.733, lng: 4.835 },
+      name: "Entrepôt Paris Est",
+      address: "12 Rue du Faubourg Saint-Antoine, 75012 Paris",
+      location: { lat: 48.852, lng: 2.373 },
     },
     {
       _id: new ObjectId(),
-      name: "Entrepôt Marseille",
-      address: "23 Rue Mazenod, 13002 Marseille",
-      location: { lat: 43.302, lng: 5.37 },
+      name: "Entrepôt Paris Ouest",
+      address: "8 Rue de la Garenne, 92000 Nanterre",
+      location: { lat: 48.893, lng: 2.207 },
     },
   ];
   await warehouses.insertMany(warehouseDocs);
@@ -77,21 +77,33 @@ export async function runSeed(): Promise<SeedResult> {
     },
     {
       _id: new ObjectId(),
-      name: "Supérette Part-Dieu",
-      address: "17 Rue Garibaldi, 69003 Lyon",
-      location: { lat: 45.761, lng: 4.859 },
+      name: "Supérette Nation",
+      address: "1 Place de la Nation, 75011 Paris",
+      location: { lat: 48.848, lng: 2.396 },
     },
     {
       _id: new ObjectId(),
-      name: "Supérette Vieux-Port",
-      address: "2 Quai du Port, 13002 Marseille",
-      location: { lat: 43.296, lng: 5.37 },
+      name: "Supérette Vincennes",
+      address: "42 Rue de Fontenay, 94300 Vincennes",
+      location: { lat: 48.847, lng: 2.439 },
     },
     {
       _id: new ObjectId(),
-      name: "Supérette Canebière",
-      address: "80 La Canebière, 13001 Marseille",
-      location: { lat: 43.2965, lng: 5.379 },
+      name: "Supérette Saint-Denis Centre",
+      address: "3 Rue de la République, 93200 Saint-Denis",
+      location: { lat: 48.936, lng: 2.357 },
+    },
+    {
+      _id: new ObjectId(),
+      name: "Supérette Pantin",
+      address: "18 Avenue Jean Lolive, 93500 Pantin",
+      location: { lat: 48.899, lng: 2.407 },
+    },
+    {
+      _id: new ObjectId(),
+      name: "Supérette Créteil",
+      address: "10 Rue Juliette Récamier, 94000 Créteil",
+      location: { lat: 48.777, lng: 2.457 },
     },
   ];
   await stores.insertMany(storeDocs);
@@ -125,7 +137,7 @@ export async function runSeed(): Promise<SeedResult> {
   ];
 
   const allSkills = ["frigorifique", "matières dangereuses", "fragile", "longue distance", "express"];
-  const allZones = ["Paris", "Lyon", "Marseille", "Bordeaux", "Lille", "Toulouse", "Nantes"];
+  const allZones = ["Paris", "Seine-Saint-Denis", "Val-de-Marne", "Hauts-de-Seine", "Val-d'Oise", "Essonne", "Seine-et-Marne", "Yvelines"];
   const pick = <T,>(arr: T[], n: number, seed: number): T[] => {
     const out: T[] = [];
     for (let i = 0; i < n; i++) out.push(arr[(seed + i * 3) % arr.length]);
@@ -188,48 +200,76 @@ export async function runSeed(): Promise<SeedResult> {
 
   const deliveryDocs = [
     {
+      // Paris Nord → Bastille, République, Montmartre (planned)
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[0]._id,
       storeIds: [storeDocs[0]._id, storeDocs[2]._id, storeDocs[1]._id],
-      totalDistanceKm: 38.4,
-      totalDurationSeconds: 5040,
+      totalDistanceKm: 18.3,
+      totalDurationSeconds: 3240,
       plannedStartAt: hours(24),
       storeArrivals: [],
       status: "planned" as const,
+      roadSignIds: [],
+      wasRerouted: false,
       driverId: driverDocs[3]._id,
+      truckId: truckDocs[0]._id,
     },
     {
+      // Paris Est → Nation, Vincennes (started)
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[1]._id,
-      storeIds: [storeDocs[3]._id],
-      totalDistanceKm: 4.2,
-      totalDurationSeconds: 900,
+      storeIds: [storeDocs[3]._id, storeDocs[4]._id],
+      totalDistanceKm: 7.6,
+      totalDurationSeconds: 1440,
       plannedStartAt: hours(-2),
       actualStartAt: hours(-1.5),
       storeArrivals: [],
       status: "started" as const,
+      roadSignIds: [],
+      wasRerouted: false,
       driverId: driverDocs[0]._id,
+      truckId: truckDocs[1]._id,
     },
     {
+      // Paris Ouest → Pantin, Saint-Denis (done)
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[2]._id,
-      storeIds: [storeDocs[4]._id, storeDocs[5]._id],
-      totalDistanceKm: 5.8,
-      totalDurationSeconds: 1200,
+      storeIds: [storeDocs[6]._id, storeDocs[5]._id],
+      totalDistanceKm: 22.1,
+      totalDurationSeconds: 4200,
       plannedStartAt: hours(-48),
       actualStartAt: hours(-47),
       storeArrivals: [
-        { storeId: storeDocs[4]._id, arrivedAt: hours(-46.5) },
+        { storeId: storeDocs[6]._id, arrivedAt: hours(-46.5) },
         { storeId: storeDocs[5]._id, arrivedAt: hours(-46) },
       ],
       status: "done" as const,
+      roadSignIds: [],
+      wasRerouted: false,
       driverId: driverDocs[2]._id,
+      truckId: truckDocs[2]._id,
+    },
+    {
+      // Paris Nord → Créteil, Nation (planned demain matin)
+      _id: new ObjectId(),
+      departureWarehouseId: warehouseDocs[0]._id,
+      storeIds: [storeDocs[7]._id, storeDocs[3]._id],
+      totalDistanceKm: 31.4,
+      totalDurationSeconds: 5400,
+      plannedStartAt: hours(48),
+      storeArrivals: [],
+      status: "planned" as const,
+      roadSignIds: [],
+      wasRerouted: false,
+      driverId: driverDocs[1]._id,
+      truckId: truckDocs[0]._id,
     },
   ];
   await deliveries.insertMany(deliveryDocs);
 
   const startedDelivery = deliveryDocs[1];
   const movingDriver = driverDocs[0];
+  // La livraison en cours part de Paris Est, en direction de Nation
   const baseLat = warehouseDocs[1].location.lat;
   const baseLng = warehouseDocs[1].location.lng;
 

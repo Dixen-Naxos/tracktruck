@@ -21,6 +21,10 @@ export type Delivery = {
   status: DeliveryStatus;
   truckId?: ObjectId;
   driverId?: ObjectId;
+  /** OSM IDs of road signs that were detected (and potentially rerouted around) */
+  roadSignIds: string[];
+  /** True if the route was recomputed to avoid blocking signs */
+  wasRerouted: boolean;
 };
 
 export const deliveries = db.collection<Delivery>("deliveries");
