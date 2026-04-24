@@ -13,7 +13,6 @@ import 'package:truck_map/widgets/utility_point.dart';
 import 'package:truck_map/widgets/waypoint_markers.dart';
 import 'package:truck_map/models/incident.dart';
 import 'package:truck_map/models/itinerary.dart';
-import 'package:truck_map/widgets/user_location_marker.dart';
 
 class MapScreen extends StatefulWidget {
   final String deliveryId;
@@ -127,6 +126,13 @@ class _MapScreenState extends State<MapScreen> {
                             subdomains: const ['a', 'b', 'c', 'd'],
                             userAgentPackageName: 'com.example.truck_map',
                           ),
+                          if (itinerary.routePoints.isNotEmpty)
+                            ItineraryPolyline(
+                                routePoints: itinerary.routePoints),
+                          WaypointMarkers(waypoints: itinerary.waypoints),
+                          UtilityPointMarkers(
+                              points: itinerary.utilityPoints),
+                          RoadSignMarkers(signs: itinerary.roadSigns),
                           MarkerLayer(
                             markers: itinerary.orderedStops
                                 .asMap()
@@ -320,17 +326,11 @@ class _IncidentSheetState extends State<_IncidentSheet> {
                         : const Icon(Icons.warning_amber_rounded),
                     label: Text(isLoading ? 'Envoi...' : 'Signaler'),
                   ),
-                  ItineraryPolyline(routePoints: itinerary.routePoints),
-                  WaypointMarkers(waypoints: itinerary.waypoints),
-                  UtilityPointMarkers(points: itinerary.utilityPoints),
-                  RoadSignMarkers(signs: itinerary.roadSigns),
-                  if (locationState.position != null)
-                    UserLocationMarker(position: locationState.position!),
-                ],
-              );
-            },
-          );
-        },
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

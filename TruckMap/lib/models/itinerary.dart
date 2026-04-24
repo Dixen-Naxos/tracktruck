@@ -7,6 +7,8 @@ import 'package:truck_map/widgets/utility_point.dart';
 class ItineraryStop extends Equatable {
   final String id;
   final String name;
+  final String address;
+  final LatLng location;
   final List<Waypoint> waypoints;
   final List<LatLng> routePoints;
   final List<UtilityPoint> utilityPoints;
@@ -15,12 +17,12 @@ class ItineraryStop extends Equatable {
   const ItineraryStop({
     required this.id,
     required this.name,
-    required this.waypoints,
-    required this.routePoints,
-    this.utilityPoints = const [],
-    this.roadSigns = const [],
     required this.address,
     required this.location,
+    this.waypoints = const [],
+    this.routePoints = const [],
+    this.utilityPoints = const [],
+    this.roadSigns = const [],
   });
 
   factory ItineraryStop.fromJson(Map<String, dynamic> json) {
@@ -63,6 +65,18 @@ class Itinerary extends Equatable {
     );
   }
 
+  List<LatLng> get routePoints =>
+      orderedStops.expand((s) => s.routePoints).toList();
+
+  List<Waypoint> get waypoints =>
+      orderedStops.expand((s) => s.waypoints).toList();
+
+  List<UtilityPoint> get utilityPoints =>
+      orderedStops.expand((s) => s.utilityPoints).toList();
+
+  List<RoadSign> get roadSigns =>
+      orderedStops.expand((s) => s.roadSigns).toList();
+
   String get formattedDuration {
     final h = totalDurationSeconds ~/ 3600;
     final m = (totalDurationSeconds % 3600) ~/ 60;
@@ -72,6 +86,5 @@ class Itinerary extends Equatable {
 
   @override
   List<Object?> get props =>
-      [id, name, waypoints, routePoints, utilityPoints, roadSigns];
       [orderedStops, totalDistanceKilometers, totalDurationSeconds];
 }

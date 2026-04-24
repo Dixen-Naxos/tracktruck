@@ -220,6 +220,7 @@ export async function computeItinerary(
   // --- Check road signs ---
   let blockingSigns = await findSignsAlongRoute(polylinePoints, truck);
   let wasRerouted = false;
+  let avoidCount = 0;
 
   // --- Reroute if blocking signs found ---
   if (blockingSigns.length > 0) {
@@ -230,6 +231,7 @@ export async function computeItinerary(
       lat: s.location.lat + NUDGE,
       lng: s.location.lng,
     }));
+    avoidCount = avoidVia.length;
 
     // Rebuild intermediates interleaving avoid-waypoints before each stop
     const reroutedIntermediates = [
@@ -271,19 +273,23 @@ export async function computeItinerary(
   }, 0);
 
   const optimizedIndexes = route.optimizedIntermediateWaypointIndex;
-  // When rerouting, optimizedIndexes may include avoid-via waypoints first;
-  // we take only the last N indexes corresponding to real stops.
-  const stopCount = stopPoints.length;
-  const rawIndexes = optimizedIndexes
-    ? optimizedIndexes.slice(-stopCount)
-    : null;
 
-  const orderedStopPoints = rawIndexes
-    ? rawIndexes.map((i) => stopPoints[i])
-    : stopPoints;
-  const orderedStopIds = rawIndexes
-    ? rawIndexes.map((i) => toVisitIds[i])
-    : toVisitIds;
+  let orderedStopPoints: ResolvedPoint[];
+  let orderedStopIds: ObjectId[];
+
+  if (optimizedIndexes) {
+    // When rerouting, intermediates include avoid-via waypoints first (indices
+    // 0..avoidCount-1) followed by real stops (indices avoidCount..n-1).
+    // We must filter to stop indices only and subtract the avoid offset.
+    const stopIndexes = wasRerouted
+      ? optimizedIndexes.filter((i) => i >= avoidCount).map((i) => i - avoidCount)
+      : optimizedIndexes.slice(0, stopPoints.length);
+    orderedStopPoints = stopIndexes.map((i) => stopPoints[i]);
+    orderedStopIds = stopIndexes.map((i) => toVisitIds[i]);
+  } else {
+    orderedStopPoints = stopPoints;
+    orderedStopIds = [...toVisitIds];
+  }
 
   const orderedStops: ItineraryStop[] = orderedStopPoints.map((stop, i) => ({
     id: orderedStopIds[i].toHexString(),
