@@ -11,19 +11,33 @@ const gpsPositionSchema = z.object({
   lng: z.number(),
 });
 
+const deliveryIncidentBase = {
+  deliveryId: zObjectId,
+  position: gpsPositionSchema,
+  comment: z.string().trim().min(1).optional(),
+};
+
 const createIncidentSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("delivery_delayed"),
-    deliveryId: zObjectId,
-    position: gpsPositionSchema,
-    expectedDelayMinutes: z.number().int().positive(),
-    comment: z.string().trim().min(1).optional(),
+    ...deliveryIncidentBase,
+    expectedDelayMinutes: z.number().int().positive().optional(),
   }),
   z.object({
     type: z.literal("vehicle_breakdown"),
-    deliveryId: zObjectId,
-    position: gpsPositionSchema,
-    comment: z.string().trim().min(1).optional(),
+    ...deliveryIncidentBase,
+  }),
+  z.object({
+    type: z.literal("accident"),
+    ...deliveryIncidentBase,
+  }),
+  z.object({
+    type: z.literal("obstacle"),
+    ...deliveryIncidentBase,
+  }),
+  z.object({
+    type: z.literal("other"),
+    ...deliveryIncidentBase,
   }),
 ]);
 

@@ -8,6 +8,14 @@ extension IncidentTypeX on IncidentType {
         IncidentType.delay => 'Retard',
         IncidentType.other => 'Autre',
       };
+
+  String get apiValue => switch (this) {
+        IncidentType.breakdown => 'vehicle_breakdown',
+        IncidentType.accident => 'accident',
+        IncidentType.obstacle => 'obstacle',
+        IncidentType.delay => 'delivery_delayed',
+        IncidentType.other => 'other',
+      };
 }
 
 class Incident {
@@ -16,6 +24,7 @@ class Incident {
   final String? description;
   final double? latitude;
   final double? longitude;
+  final int? expectedDelayMinutes;
 
   const Incident({
     required this.deliveryId,
@@ -23,14 +32,17 @@ class Incident {
     this.description,
     this.latitude,
     this.longitude,
+    this.expectedDelayMinutes,
   });
 
   Map<String, dynamic> toJson() => {
         'deliveryId': deliveryId,
-        'type': type.name,
+        'type': type.apiValue,
         if (description != null && description!.isNotEmpty)
-          'description': description,
-        if (latitude != null) 'latitude': latitude,
-        if (longitude != null) 'longitude': longitude,
+          'comment': description,
+        if (latitude != null && longitude != null)
+          'position': {'lat': latitude, 'lng': longitude},
+        if (type == IncidentType.delay && expectedDelayMinutes != null)
+          'expectedDelayMinutes': expectedDelayMinutes,
       };
 }
