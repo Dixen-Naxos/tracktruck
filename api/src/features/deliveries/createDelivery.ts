@@ -10,13 +10,17 @@ export type CreateDeliveryInput = {
   itineraryResult: ComputeItineraryResult;
 };
 
-export async function createDelivery(input: CreateDeliveryInput): Promise<Delivery> {
+export async function createDelivery(
+  input: CreateDeliveryInput,
+): Promise<Delivery> {
   const { departureWarehouseId, plannedStartAt, itineraryResult } = input;
-  const { orderedStopIds, totalDistanceKilometers, totalDurationSeconds } = itineraryResult;
+  const { orderedStopIds, totalDistanceKilometers, totalDurationSeconds } =
+    itineraryResult;
 
   // Verify departure warehouse exists
   const warehouse = await warehouses.findOne({ _id: departureWarehouseId });
-  if (!warehouse) throw new HTTPException(404, { message: "Departure warehouse not found" });
+  if (!warehouse)
+    throw new HTTPException(404, { message: "Departure warehouse not found" });
 
   // Dedup: same warehouse + same ordered stores + same plannedStartAt → skip
   const existing = await deliveries.findOne({
@@ -26,7 +30,8 @@ export async function createDelivery(input: CreateDeliveryInput): Promise<Delive
   });
   if (existing) {
     throw new HTTPException(409, {
-      message: "An identical delivery (same warehouse, stores and departure time) already exists",
+      message:
+        "An identical delivery (same warehouse, stores and departure time) already exists",
     });
   }
 
@@ -34,7 +39,7 @@ export async function createDelivery(input: CreateDeliveryInput): Promise<Delive
     _id: new ObjectId(),
     departureWarehouseId,
     storeIds: orderedStopIds,
-    distanceKm: totalDistanceKilometers,
+    totalDistanceKm: totalDistanceKilometers,
     totalDurationSeconds,
     plannedStartAt,
     storeArrivals: [],

@@ -28,7 +28,7 @@ const createDeliverySchema = z.object({
 });
 
 export const deliveriesRoute = new Hono<AuthEnv>()
-  // .use("*", requireAuth, requireRole("admin"))
+  .use("*", requireAuth)
   .post(
     "/",
     describeRoute({
@@ -58,6 +58,7 @@ export const deliveriesRoute = new Hono<AuthEnv>()
         502: { description: "Google Routes API error" },
       },
     }),
+    requireRole("admin"),
     validator("json", createDeliverySchema),
     async (c) => {
       const { departureWarehouseId, storeIds, plannedStartAt } =
@@ -87,6 +88,10 @@ export const deliveriesRoute = new Hono<AuthEnv>()
       },
     }),
     async (c) => {
+      const user = c.get("user");
+      if (user.role === "driver") {
+        return c.json(await listDeliveries({ driverId: user._id }));
+      }
       return c.json(await listDeliveries());
     },
   )
@@ -103,6 +108,7 @@ export const deliveriesRoute = new Hono<AuthEnv>()
         422: { description: "No truck or distance assigned" },
       },
     }),
+    requireRole("admin"),
     validator("param", deliveryIdParamSchema),
     async (c) => {
       const { deliveryId } = c.req.valid("param");
@@ -126,6 +132,7 @@ export const deliveriesRoute = new Hono<AuthEnv>()
         502: { description: "Fuel price API error" },
       },
     }),
+    requireRole("admin"),
     validator("param", deliveryIdParamSchema),
     async (c) => {
       const { deliveryId } = c.req.valid("param");
