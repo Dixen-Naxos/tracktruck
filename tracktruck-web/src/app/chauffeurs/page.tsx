@@ -73,6 +73,11 @@ useEffect(() => {
     toast(`${created.firstName} ${created.lastName} créé·e`, "success");
   };
 
+  const handleUpdate = (updated: Driver) => {
+    setDrivers((prev) => prev.map((d) => d.id === updated.id ? updated : d));
+    setSelected(updated);
+  };
+
   return (
     <>
       <PageHeader
@@ -162,7 +167,7 @@ useEffect(() => {
         <DriverList drivers={filtered} onOpen={setSelected}/>
       )}
 
-      {selected && <DriverDialog driver={selected} onClose={() => setSelected(null)} />}
+      {selected && <DriverDialog driver={selected} onClose={() => setSelected(null)} onUpdate={handleUpdate} />}
       {drawerOpen && <CreateChauffeur onClose={() => setDrawerOpen(false)} onCreate={handleCreate} />}
     </>
   );

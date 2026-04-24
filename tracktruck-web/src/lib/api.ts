@@ -81,8 +81,9 @@ export const ApiDrivers = {
   get:        (id: string)                               => request<Driver>("GET",    `/api/drivers/${id}`),
   create:     (input: Omit<Driver, "id">)                => request<Driver>("POST",   "/api/drivers", input),
   createUser: async (input: DriverUser)                  => toDriver(await request<ApiDriver>("POST", "/drivers", input)),
-  update:     (id: string, patch: Partial<Driver>)       => request<Driver>("PATCH",  `/api/drivers/${id}`, patch),
-  remove:     (id: string)                               => request<void> ("DELETE",  `/api/drivers/${id}`),
+  update:     async (id: string, patch: { firstName?: string; lastName?: string; phone?: string; skills?: string[]; zones?: string[] }) =>
+    toDriver(await request<ApiDriver>("PATCH", `/drivers/${id}`, patch)),
+  remove:     (id: string)                               => request<void> ("DELETE",  `/drivers/${id}`),
 };
 
 // ─── ApiOrders ────────────────────────────────────────────────────────────────

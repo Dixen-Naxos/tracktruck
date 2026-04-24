@@ -2,9 +2,15 @@
 
 import * as React from "react";
 import { Dialog } from "primereact/dialog";
-import { Avatar, Hairline, KeyStat, StatusPill } from "@/components/primitives";
+import { InputText } from "primereact/inputtext";
+import { Chips } from "primereact/chips";
+import { SelectButton } from "primereact/selectbutton";
+import { Button } from "primereact/button";
+import { Avatar, Btn, Hairline, KeyStat, StatusPill } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { SKILLS } from "@/lib/data";
+import { ApiDrivers } from "@/lib/api";
+import { useApp } from "@/context/AppContext";
 import type { Driver } from "@/lib/types";
 
 const TABS = [
@@ -16,13 +22,29 @@ const TABS = [
 
 type TabId = typeof TABS[number]["id"];
 
+const SKILL_OPTIONS = SKILLS.map((s) => ({ label: s.label, value: s.id }));
+
+const INPUT_PT = {
+  root: {
+    style: {
+      width: "100%", height: 36, borderRadius: 9, padding: "0 12px",
+      fontSize: 13.5, color: "var(--ink-1)",
+      background: "var(--surface-2)", border: "1px solid var(--line-strong)",
+      outline: "none", boxSizing: "border-box" as const,
+    },
+  },
+};
+
 interface Props {
   driver: Driver;
   onClose: () => void;
+  onUpdate: (updated: Driver) => void;
 }
 
-export function DriverDialog({ driver, onClose }: Props) {
+export function DriverDialog({ driver, onClose, onUpdate }: Props) {
   const [tab, setTab] = React.useState<TabId>("apercu");
+  const [editOpen, setEditOpen] = React.useState(false);
+  const { toast } = useApp();
 
   const header = (
     <div style={{ position: "relative", width: "100%" }}>
@@ -82,6 +104,11 @@ export function DriverDialog({ driver, onClose }: Props) {
               </span>
             </div>
           </div>
+          <div className="flex shrink-0 gap-2 pt-1">
+            <Btn variant="secondary" size="sm" icon={<Icon.edit size={13} />} onClick={() => setEditOpen(true)}>
+              Modifier
+            </Btn>
+          </div>
         </div>
 
         <div className="-mb-px mt-5 flex gap-0.5">
@@ -104,57 +131,303 @@ export function DriverDialog({ driver, onClose }: Props) {
   );
 
   return (
+    <>
+      <Dialog
+        visible
+        modal
+        closable={false}
+        draggable={false}
+        resizable={false}
+        onHide={onClose}
+        header={header}
+        pt={{
+          mask: {
+            style: {
+              position: "fixed", inset: 0, zIndex: 50,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "rgba(15,17,28,0.35)", backdropFilter: "blur(8px)",
+            },
+          },
+          root: {
+            style: {
+              width: "min(960px, calc(100vw - 48px))",
+              maxHeight: "calc(100vh - 48px)",
+              display: "flex", flexDirection: "column",
+              background: "var(--surface)",
+              border: "1px solid var(--line)",
+              borderRadius: 20,
+              boxShadow: "var(--shadow-lg)",
+            },
+          },
+          header: {
+            style: {
+              padding: 0,
+              borderBottom: "1px solid var(--line)",
+              borderRadius: "20px 20px 0 0",
+              background: "transparent",
+            },
+          },
+          headerTitle: { style: { width: "100%" } },
+          content: {
+            style: {
+              flex: 1, overflow: "auto",
+              padding: "22px 26px 26px",
+              background: "var(--surface)",
+              borderRadius: "0 0 20px 20px",
+            },
+          },
+        }}
+      >
+        {tab === "apercu"      && <TabApercu      driver={driver} />}
+        {tab === "competences" && <TabCompetences driver={driver} />}
+        {tab === "planning"    && <TabPlanning    driver={driver} />}
+        {tab === "historique"  && <TabHistorique  driver={driver} />}
+      </Dialog>
+
+      {editOpen && (
+        <EditDriverPanel
+          driver={driver}
+          onClose={() => setEditOpen(false)}
+          onSave={(updated) => {
+            onUpdate(updated);
+            setEditOpen(false);
+            toast(`${updated.firstName} ${updated.lastName} mis à jour`, "success");
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Edit panel ───────────────────────────────────────────────────────────────
+
+function EditDriverPanel({
+  driver, onClose, onSave,
+}: {
+  driver: Driver;
+  onClose: () => void;
+  onSave: (updated: Driver) => void;
+}) {
+  const [firstName, setFirstName] = React.useState(driver.firstName);
+  const [lastName,  setLastName]  = React.useState(driver.lastName);
+  const [phone,     setPhone]     = React.useState(driver.phone === "—" ? "" : driver.phone);
+  const [zones,     setZones]     = React.useState<string[]>(driver.zones);
+  const [skills,    setSkills]    = React.useState<string[]>(driver.skills);
+  const [saving,    setSaving]    = React.useState(false);
+
+  const canSave = !!(firstName.trim() && lastName.trim());
+
+  const save = async () => {
+    if (!canSave || saving) return;
+    setSaving(true);
+    try {
+      const updated = await ApiDrivers.update(driver.id, {
+        firstName: firstName.trim(),
+        lastName:  lastName.trim(),
+        phone:     phone.trim() || undefined,
+        skills,
+        zones,
+      });
+      onSave(updated);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const header = (
+    <div>
+      <div style={{ fontSize: 17, fontWeight: 650, letterSpacing: "-0.02em", color: "var(--ink-1)" }}>
+        Modifier le chauffeur
+      </div>
+      <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 2 }}>
+        {driver.firstName} {driver.lastName} · {driver.matricule}
+      </div>
+    </div>
+  );
+
+  const footer = (
+    <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+      <Button
+        label="Annuler"
+        onClick={onClose}
+        pt={{
+          root: {
+            style: {
+              height: 34, padding: "0 14px", fontSize: 13.5, fontWeight: 550,
+              borderRadius: 10, border: "none", cursor: "pointer",
+              background: "transparent", color: "var(--ink-2)",
+            },
+          },
+        }}
+      />
+      <Button
+        label={saving ? "Enregistrement…" : "Enregistrer"}
+        disabled={!canSave || saving}
+        onClick={save}
+        pt={{
+          root: {
+            style: {
+              height: 34, padding: "0 14px", fontSize: 13.5, fontWeight: 550,
+              borderRadius: 10, border: "none",
+              cursor: canSave && !saving ? "pointer" : "not-allowed",
+              background: "var(--accent)", color: "#fff",
+              opacity: canSave && !saving ? 1 : 0.5,
+            },
+          },
+        }}
+      />
+    </div>
+  );
+
+  return (
     <Dialog
       visible
       modal
-      closable={false}
       draggable={false}
       resizable={false}
       onHide={onClose}
       header={header}
+      footer={footer}
       pt={{
         mask: {
           style: {
-            position: "fixed", inset: 0, zIndex: 50,
+            position: "fixed", inset: 0, zIndex: 60,
             display: "flex", alignItems: "center", justifyContent: "center",
-            background: "rgba(15,17,28,0.35)", backdropFilter: "blur(8px)",
+            background: "rgba(15,17,28,0.45)", backdropFilter: "blur(6px)",
           },
         },
         root: {
           style: {
-            width: "min(960px, calc(100vw - 48px))",
-            maxHeight: "calc(100vh - 48px)",
-            display: "flex", flexDirection: "column",
+            width: "min(520px, calc(100vw - 32px))",
             background: "var(--surface)",
             border: "1px solid var(--line)",
-            borderRadius: 20,
+            borderRadius: 16,
             boxShadow: "var(--shadow-lg)",
           },
         },
         header: {
           style: {
-            padding: 0,
+            padding: "20px 24px",
             borderBottom: "1px solid var(--line)",
-            borderRadius: "20px 20px 0 0",
-            background: "transparent",
+            background: "var(--surface)",
+            borderRadius: "16px 16px 0 0",
           },
         },
-        headerTitle: { style: { width: "100%" } },
+        closeButton: {
+          style: {
+            width: 32, height: 32, borderRadius: 8,
+            background: "var(--surface-2)", border: "none",
+            cursor: "pointer", color: "var(--ink-3)",
+          },
+        },
         content: {
           style: {
-            flex: 1, overflow: "auto",
-            padding: "22px 26px 26px",
+            padding: "20px 24px",
+            display: "flex", flexDirection: "column", gap: 18,
             background: "var(--surface)",
-            borderRadius: "0 0 20px 20px",
+          },
+        },
+        footer: {
+          style: {
+            padding: "14px 24px 20px",
+            borderTop: "1px solid var(--line)",
+            background: "var(--surface)",
+            borderRadius: "0 0 16px 16px",
           },
         },
       }}
     >
-      {tab === "apercu"      && <TabApercu      driver={driver} />}
-      {tab === "competences" && <TabCompetences driver={driver} />}
-      {tab === "planning"    && <TabPlanning    driver={driver} />}
-      {tab === "historique"  && <TabHistorique  driver={driver} />}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <EditField label="Prénom" required>
+          <InputText value={firstName} onChange={(e) => setFirstName(e.target.value)} pt={INPUT_PT} />
+        </EditField>
+        <EditField label="Nom" required>
+          <InputText value={lastName} onChange={(e) => setLastName(e.target.value)} pt={INPUT_PT} />
+        </EditField>
+      </div>
+
+      <EditField label="Téléphone">
+        <InputText value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+33 …" pt={INPUT_PT} />
+      </EditField>
+
+      <EditField label="Zones">
+        <Chips
+          value={zones}
+          onChange={(e) => setZones(e.value ?? [])}
+          placeholder="Saisir puis Entrée"
+          pt={{
+            root: { style: { width: "100%" } },
+            container: {
+              style: {
+                width: "100%", minHeight: 36, flexWrap: "wrap", gap: 4,
+                borderRadius: 9, padding: "4px 8px",
+                background: "var(--surface-2)", border: "1px solid var(--line-strong)",
+                listStyle: "none", margin: 0, display: "flex", alignItems: "center",
+              },
+            },
+            token: {
+              style: {
+                display: "inline-flex", alignItems: "center", gap: 4,
+                background: "var(--accent-soft)", color: "var(--accent-ink)",
+                borderRadius: 7, padding: "2px 8px",
+                fontSize: 12, fontWeight: 500,
+              },
+            },
+            input: {
+              style: {
+                border: "none", outline: "none",
+                background: "transparent", color: "var(--ink-1)",
+                fontSize: 13.5, minWidth: 120,
+              },
+            },
+          }}
+        />
+      </EditField>
+
+      <EditField label="Compétences">
+        <SelectButton
+          value={skills}
+          onChange={(e) => setSkills(e.value ?? [])}
+          options={SKILL_OPTIONS}
+          optionLabel="label"
+          optionValue="value"
+          multiple
+          pt={{
+            root: { style: { display: "flex", flexWrap: "wrap", gap: 6 } },
+            button: ({ context }: { context: { selected: boolean } }) => ({
+              style: {
+                border: `1px solid ${context.selected ? "var(--accent)" : "var(--line)"}`,
+                background: context.selected ? "var(--accent-soft)" : "transparent",
+                color: context.selected ? "var(--accent-ink)" : "var(--ink-2)",
+                borderRadius: 7, padding: "5px 10px",
+                fontSize: 12, fontWeight: 500,
+                cursor: "pointer", userSelect: "none",
+                transition: "all .15s",
+              },
+            }),
+            label: { style: { fontWeight: "inherit", fontSize: "inherit" } },
+          }}
+        />
+      </EditField>
     </Dialog>
+  );
+}
+
+function EditField({
+  label, children, required,
+}: {
+  label: string; children: React.ReactNode; required?: boolean;
+}) {
+  return (
+    <div>
+      <div style={{
+        color: "var(--ink-3)", fontSize: 12, fontWeight: 600,
+        textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: 6,
+      }}>
+        {label}{required && <span style={{ color: "var(--danger)", marginLeft: 4 }}>*</span>}
+      </div>
+      {children}
+    </div>
   );
 }
 
