@@ -18,9 +18,11 @@ import { itinerariesRoute } from "./routes/itineraries.js";
 import { deliveriesRoute } from "./routes/deliveries.js";
 import { seederRoute } from "./routes/seeder.js";
 import { startSytadinPolling } from "./features/incidents/fetchIncidents.js";
+import { logger } from "hono/logger";
 
 const app = new Hono<AuthEnv>()
   .use("*", cors())
+  .use("*", logger())
   .get("/", (c) => c.text("Hello Hono!"))
   .route("/admins", adminsRoutes)
   .route("/videos", videosRoute)
