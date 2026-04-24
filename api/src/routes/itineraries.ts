@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { describeRoute, validator } from "hono-openapi";
 import { z } from "zod";
-import { requireAuth, type AuthEnv } from "../auth/middleware.js";
+import {type AuthEnv, requireAuth} from "../auth/middleware.js";
 import { computeItinerary } from "../features/itineraries/computeItinerary.js";
 import { zObjectId } from "../utils/idParamSchema.js";
 

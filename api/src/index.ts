@@ -6,6 +6,7 @@ import { cors } from "hono/cors";
 import { openAPIRouteHandler } from "hono-openapi";
 import { connect } from "./db/config.js";
 import { ensureUserIndexes } from "./db/User.js";
+import { ensureRoadSignIndexes } from "./db/RoadSign.js";
 import type { AuthEnv } from "./auth/middleware.js";
 import { adminsRoutes } from "./routes/admins.js";
 import { videosRoute } from "./routes/videos.js";
@@ -16,6 +17,7 @@ import { warehousesRoute } from "./routes/warehouses.js";
 import { storesRoute } from "./routes/stores.js";
 import { itinerariesRoute } from "./routes/itineraries.js";
 import { deliveriesRoute } from "./routes/deliveries.js";
+import { roadSignsRoute } from "./routes/roadSigns.js";
 import { seederRoute } from "./routes/seeder.js";
 import { startSytadinPolling } from "./features/incidents/fetchIncidents.js";
 import { logger } from "hono/logger";
@@ -33,6 +35,7 @@ const app = new Hono<AuthEnv>()
   .route("/stores", storesRoute)
   .route("/itineraries", itinerariesRoute)
   .route("/deliveries", deliveriesRoute)
+  .route("/road-signs", roadSignsRoute)
   .route("/seeder", seederRoute);
 
 app.get(
@@ -63,6 +66,7 @@ app.get("/docs", swaggerUI({ url: "/openapi.json" }));
 async function main() {
   await connect();
   await ensureUserIndexes();
+  await ensureRoadSignIndexes();
 
   startSytadinPolling().catch((error) => {
     console.error("Error starting Sytadin polling:", error);
