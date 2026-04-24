@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { describeRoute, validator } from "hono-openapi";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
@@ -9,6 +10,8 @@ import { getDeliveryFuelConsumption } from "../features/deliveries/getFuelConsum
 import { getDeliveryTripCost } from "../features/deliveries/getTripCost.js";
 import { idParamSchema, zObjectId } from "../utils/idParamSchema.js";
 import { assignDriverToDelivery } from "../features/deliveries/assignDriver.js";
+import { deliveries } from "../db/Delivery.js";
+import { computeItinerary } from "../features/itineraries/computeItinerary.js";
 
 const objectIdSchema = z
   .string()
@@ -174,5 +177,34 @@ export const deliveriesRoute = new Hono<AuthEnv>()
       const { driverId } = c.req.valid("json");
       const delivery = await assignDriverToDelivery(id, driverId);
       return c.json(delivery);
+    },
+  )
+  .get(
+    "/:deliveryId/itinerary",
+    describeRoute({
+      summary: "Compute itinerary for a delivery",
+      description:
+        "Looks up the delivery by ID, then calls Google Routes API to compute the optimal route from the warehouse through all stores.",
+      tags: ["Deliveries"],
+      responses: {
+        200: { description: "Optimized itinerary returned" },
+        404: { description: "Delivery, warehouse, or store not found" },
+        502: { description: "Google Routes API error" },
+      },
+    }),
+    validator("param", deliveryIdParamSchema),
+    async (c) => {
+      const { deliveryId } = c.req.valid("param");
+
+      const delivery = await deliveries.findOne({ _id: deliveryId });
+      if (!delivery) {
+        throw new HTTPException(404, { message: `Delivery ${deliveryId} not found` });
+      }
+
+      const itinerary = await computeItinerary({
+        startPointId: delivery.departureWarehouseId,
+        toVisitIds: delivery.storeIds,
+      });
+      return c.json({ itinerary });
     },
   );
