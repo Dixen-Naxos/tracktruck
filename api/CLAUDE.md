@@ -35,7 +35,9 @@ Apply it to a whole sub-tree with `app.use`:
 ```ts
 const protectedRoutes = new Hono<AuthEnv>();
 protectedRoutes.use("*", requireAuth);
-protectedRoutes.get("/deliveries", (c) => { /* c.get("user") is available */ });
+protectedRoutes.get("/deliveries", (c) => {
+  /* c.get("user") is available */
+});
 app.route("/api", protectedRoutes);
 ```
 
@@ -70,10 +72,10 @@ The middleware throws `HTTPException`; Hono converts these to HTTP responses aut
 
 ## Validating input
 
-Every route that reads a request body, query params, or path params must validate them with zod via `@hono/zod-validator`. Hand-rolled `if (typeof x !== "string")` checks are not allowed — the validator generates 400 responses automatically and gives the handler a fully-typed `c.req.valid(...)`.
+Every route that reads a request body, query params, or path params must validate them with zod via `hono-openapi`. Hand-rolled `if (typeof x !== "string")` checks are not allowed — the validator generates 400 responses automatically and gives the handler a fully-typed `c.req.valid(...)`.
 
 ```ts
-import { zValidator } from "@hono/zod-validator";
+import { validator } from "hono-openapi";
 import { z } from "zod";
 
 const createDeliverySchema = z.object({
@@ -85,7 +87,7 @@ app.post(
   "/deliveries",
   requireAuth,
   requireRole("admin"),
-  zValidator("json", createDeliverySchema),
+  validator("json", createDeliverySchema),
   (c) => {
     const { warehouseId, scheduledFor } = c.req.valid("json");
     // ...

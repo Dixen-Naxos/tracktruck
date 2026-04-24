@@ -8,6 +8,12 @@ export type StoreArrival = {
   arrivedAt: Date;
 };
 
+export type InlineStop = {
+  name: string;
+  address: string;
+  location: { lat: number; lng: number };
+};
+
 export type Delivery = {
   _id: ObjectId;
   departureWarehouseId: ObjectId;
@@ -21,6 +27,12 @@ export type Delivery = {
   status: DeliveryStatus;
   truckId?: ObjectId;
   driverId?: ObjectId;
+  /** OSM IDs of road signs that were detected (and potentially rerouted around) */
+  roadSignIds?: string[];
+  /** True if the route was recomputed to avoid blocking signs */
+  wasRerouted?: boolean;
+  /** Inline stops for web-created deliveries (no Store doc reference) */
+  stops?: InlineStop[];
 };
 
 export const deliveries = db.collection<Delivery>("deliveries");

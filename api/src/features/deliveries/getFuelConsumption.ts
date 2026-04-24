@@ -17,13 +17,18 @@ export async function getDeliveryFuelConsumption(
   deliveryId: ObjectId,
 ): Promise<FuelConsumptionResult> {
   const delivery = await deliveries.findOne({ _id: deliveryId });
-  if (!delivery) throw new HTTPException(404, { message: "Delivery not found" });
-  if (!delivery.truckId) throw new HTTPException(422, { message: "No truck assigned to this delivery" });
+  if (!delivery)
+    throw new HTTPException(404, { message: "Delivery not found" });
+  if (!delivery.truckId)
+    throw new HTTPException(422, {
+      message: "No truck assigned to this delivery",
+    });
 
   const truck = await trucks.findOne({ _id: delivery.truckId });
   if (!truck) throw new HTTPException(404, { message: "Truck not found" });
 
-  const totalConsumptionL = (truck.fuelConsumptionL100km / 100) * delivery.totalDistanceKm;
+  const totalConsumptionL =
+    (truck.fuelConsumptionL100km / 100) * delivery.totalDistanceKm;
 
   return {
     deliveryId: delivery._id.toHexString(),

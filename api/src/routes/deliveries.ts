@@ -1,52 +1,94 @@
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { describeRoute, validator } from "hono-openapi";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { requireAuth, requireRole, type AuthEnv } from "../auth/middleware.js";
-import { assignDriverToDelivery } from "../features/deliveries/assignDriver.js";
 import { createDelivery } from "../features/deliveries/createDelivery.js";
 import { listDeliveries } from "../features/deliveries/listDeliveries.js";
-import { idParamSchema } from "../utils/idParamSchema.js";
+import { getDeliveryFuelConsumption } from "../features/deliveries/getFuelConsumption.js";
+import { getDeliveryTripCost } from "../features/deliveries/getTripCost.js";
+import { idParamSchema, zObjectId } from "../utils/idParamSchema.js";
+import { assignDriverToDelivery } from "../features/deliveries/assignDriver.js";
+import { deliveries } from "../db/Delivery.js";
+import { computeItinerary } from "../features/itineraries/computeItinerary.js";
 
 const objectIdSchema = z
   .string()
   .refine((s) => ObjectId.isValid(s), "Invalid ID")
   .transform((s) => new ObjectId(s));
 
+const deliveryIdParamSchema = z.object({
+  deliveryId: objectIdSchema,
+});
+
+const latLngSchema = z.object({ lat: z.number(), lng: z.number() });
+
+// Accepts either an itinerary (mobile flow) or inline stops (web flow)
 const createDeliverySchema = z
   .object({
     departureWarehouseId: objectIdSchema,
     plannedStartAt: z.iso.datetime().transform((s) => new Date(s)),
-    // Paste the itinerary object returned by POST /itineraries/compute
-    itinerary: z.object({
-      orderedStopIds: z.array(objectIdSchema).min(1),
-      totalDistanceKilometers: z.number().nonnegative(),
-      totalDurationSeconds: z.number().nonnegative().int(),
-      blockingSigns: z
-        .array(z.object({ osmId: z.string() }).passthrough())
-        .default([]),
-      wasRerouted: z.boolean().default(false),
-    }),
+    // Mobile flow: itinerary object from POST /itineraries/compute
+    itinerary: z
+      .object({
+        orderedStopIds: z.array(objectIdSchema).min(1),
+        totalDistanceKilometers: z.number().nonnegative(),
+        totalDurationSeconds: z.number().nonnegative().int(),
+        blockingSigns: z
+          .array(z.object({ osmId: z.string() }).passthrough())
+          .default([]),
+        wasRerouted: z.boolean().default(false),
+      })
+      .optional(),
+    // Web flow: inline stops with coordinates
+    stops: z
+      .array(
+        z.object({
+          name: z.string(),
+          address: z.string().default(""),
+          location: latLngSchema,
+        }),
+      )
+      .optional(),
     truckId: objectIdSchema.optional(),
     driverId: objectIdSchema.optional(),
+  })
+  .refine((d) => d.itinerary || d.stops, {
+    message: "Either itinerary (with orderedStopIds) or stops must be provided",
   })
   .transform((d) => ({
     departureWarehouseId: d.departureWarehouseId,
     plannedStartAt: d.plannedStartAt,
-    orderedStopIds: d.itinerary.orderedStopIds,
-    totalDistanceKm: d.itinerary.totalDistanceKilometers,
-    totalDurationSeconds: d.itinerary.totalDurationSeconds,
+    ...(d.itinerary
+      ? {
+          storeIds: d.itinerary.orderedStopIds,
+          totalDistanceKm: d.itinerary.totalDistanceKilometers,
+          totalDurationSeconds: d.itinerary.totalDurationSeconds,
+          roadSignIds: d.itinerary.blockingSigns.map((s) => s.osmId),
+          wasRerouted: d.itinerary.wasRerouted,
+        }
+      : {
+          stops: d.stops!.map((s) => ({
+            name: s.name,
+            address: s.address,
+            location: s.location,
+          })),
+          totalDistanceKm: 0,
+          totalDurationSeconds: 0,
+        }),
     truckId: d.truckId,
     driverId: d.driverId,
   }));
 
 export const deliveriesRoute = new Hono<AuthEnv>()
+  .use("*", requireAuth)
   .post(
     "/",
     describeRoute({
       summary: "Create a delivery",
       description:
-        "Persists a delivery from an itinerary previously computed by POST /itineraries/compute. No route computation happens here.",
+        "Persists a delivery. Accepts either an itinerary object (mobile flow with orderedStopIds) or inline stops (web flow with lat/lng).",
       tags: ["Deliveries"],
       requestBody: {
         required: true,
@@ -56,7 +98,10 @@ export const deliveriesRoute = new Hono<AuthEnv>()
               departureWarehouseId: "684a1f2e3c4b5d6e7f8a9b0c",
               plannedStartAt: "2026-04-25T08:00:00.000Z",
               itinerary: {
-                orderedStopIds: ["684a1f2e3c4b5d6e7f8a9b0d", "684a1f2e3c4b5d6e7f8a9b0e"],
+                orderedStopIds: [
+                  "684a1f2e3c4b5d6e7f8a9b0d",
+                  "684a1f2e3c4b5d6e7f8a9b0e",
+                ],
                 totalDistanceKilometers: 18.3,
                 totalDurationSeconds: 3240,
                 blockingSigns: [],
@@ -68,10 +113,11 @@ export const deliveriesRoute = new Hono<AuthEnv>()
       },
       responses: {
         201: { description: "Delivery created" },
-        404: { description: "Warehouse not found" },
+        400: { description: "Must provide itinerary or stops" },
         409: { description: "Identical delivery already exists" },
       },
     }),
+    requireRole("admin"),
     validator("json", createDeliverySchema),
     async (c) => {
       const body = c.req.valid("json");
@@ -82,7 +128,7 @@ export const deliveriesRoute = new Hono<AuthEnv>()
   .get(
     "/",
     describeRoute({
-      summary: "List deliveries",
+      summary: "List all deliveries",
       description:
         "Admins get every delivery. Drivers get only the deliveries assigned to them.",
       tags: ["Deliveries"],
@@ -90,13 +136,56 @@ export const deliveriesRoute = new Hono<AuthEnv>()
         200: { description: "List of deliveries" },
       },
     }),
-    requireAuth,
     async (c) => {
       const user = c.get("user");
       if (user.role === "driver") {
         return c.json(await listDeliveries({ driverId: user._id }));
       }
       return c.json(await listDeliveries());
+    },
+  )
+  .get(
+    "/:deliveryId/fuel-consumption",
+    describeRoute({
+      summary: "Get fuel consumption for a delivery",
+      description:
+        "Returns the fuel consumption in liters based on the truck assigned to the delivery and its total distance.",
+      tags: ["Deliveries"],
+      responses: {
+        200: { description: "Fuel consumption details" },
+        404: { description: "Delivery or truck not found" },
+        422: { description: "No truck or distance assigned" },
+      },
+    }),
+    requireRole("admin"),
+    validator("param", deliveryIdParamSchema),
+    async (c) => {
+      const { deliveryId } = c.req.valid("param");
+      return c.json(await getDeliveryFuelConsumption(deliveryId));
+    },
+  )
+  .get(
+    "/:deliveryId/trip-cost",
+    describeRoute({
+      summary: "Get the fuel cost of a delivery",
+      description:
+        "Calculates the total fuel cost based on the truck's consumption, the delivery's distance, and the live price per liter fetched from prix-carburants.2aaz.fr.",
+      tags: ["Deliveries"],
+      responses: {
+        200: { description: "Trip cost breakdown" },
+        404: { description: "Delivery or truck not found" },
+        422: {
+          description:
+            "No truck assigned or fuel type has no price (e.g. electric)",
+        },
+        502: { description: "Fuel price API error" },
+      },
+    }),
+    requireRole("admin"),
+    validator("param", deliveryIdParamSchema),
+    async (c) => {
+      const { deliveryId } = c.req.valid("param");
+      return c.json(await getDeliveryTripCost(deliveryId));
     },
   )
   .put(
@@ -113,13 +202,12 @@ export const deliveriesRoute = new Hono<AuthEnv>()
         404: { description: "Delivery or driver not found" },
       },
     }),
-    requireAuth,
     requireRole("admin"),
     validator("param", idParamSchema),
     validator(
       "json",
       z.object({
-        driverId: z.union([objectIdSchema, z.null()]),
+        driverId: zObjectId.nullable(),
       }),
     ),
     async (c) => {
@@ -127,5 +215,36 @@ export const deliveriesRoute = new Hono<AuthEnv>()
       const { driverId } = c.req.valid("json");
       const delivery = await assignDriverToDelivery(id, driverId);
       return c.json(delivery);
+    },
+  )
+  .get(
+    "/:deliveryId/itinerary",
+    describeRoute({
+      summary: "Compute itinerary for a delivery",
+      description:
+        "Looks up the delivery by ID, then calls Google Routes API to compute the optimal route from the warehouse through all stores.",
+      tags: ["Deliveries"],
+      responses: {
+        200: { description: "Optimized itinerary returned" },
+        404: { description: "Delivery, warehouse, or store not found" },
+        502: { description: "Google Routes API error" },
+      },
+    }),
+    validator("param", deliveryIdParamSchema),
+    async (c) => {
+      const { deliveryId } = c.req.valid("param");
+
+      const delivery = await deliveries.findOne({ _id: deliveryId });
+      if (!delivery) {
+        throw new HTTPException(404, {
+          message: `Delivery ${deliveryId} not found`,
+        });
+      }
+
+      const itinerary = await computeItinerary({
+        startPointId: delivery.departureWarehouseId,
+        toVisitIds: delivery.storeIds,
+      });
+      return c.json({ itinerary });
     },
   );

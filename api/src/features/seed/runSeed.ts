@@ -4,7 +4,6 @@ import { warehouses } from "../../db/Warehouse.js";
 import { trucks } from "../../db/Truck.js";
 import { users } from "../../db/User.js";
 import { deliveries } from "../../db/Delivery.js";
-import { dashcamVideos } from "../../db/DashcamVideo.js";
 import {
   truckPositionTraces,
   type TruckPositionTrace,
@@ -17,7 +16,6 @@ export async function clearAll() {
     trucks.deleteMany({}),
     users.deleteMany({}),
     deliveries.deleteMany({}),
-    dashcamVideos.deleteMany({}),
     truckPositionTraces.deleteMany({}),
   ]);
 }
@@ -43,15 +41,15 @@ export async function runSeed(): Promise<SeedResult> {
     },
     {
       _id: new ObjectId(),
-      name: "Entrepôt Lyon Sud",
-      address: "112 Avenue Jean Jaurès, 69007 Lyon",
-      location: { lat: 45.733, lng: 4.835 },
+      name: "Entrepôt Paris Est",
+      address: "12 Rue du Faubourg Saint-Antoine, 75012 Paris",
+      location: { lat: 48.852, lng: 2.373 },
     },
     {
       _id: new ObjectId(),
-      name: "Entrepôt Marseille",
-      address: "23 Rue Mazenod, 13002 Marseille",
-      location: { lat: 43.302, lng: 5.37 },
+      name: "Entrepôt Paris Ouest",
+      address: "8 Rue de la Garenne, 92000 Nanterre",
+      location: { lat: 48.893, lng: 2.207 },
     },
   ];
   await warehouses.insertMany(warehouseDocs);
@@ -77,29 +75,59 @@ export async function runSeed(): Promise<SeedResult> {
     },
     {
       _id: new ObjectId(),
-      name: "Supérette Part-Dieu",
-      address: "17 Rue Garibaldi, 69003 Lyon",
-      location: { lat: 45.761, lng: 4.859 },
+      name: "Supérette Nation",
+      address: "1 Place de la Nation, 75011 Paris",
+      location: { lat: 48.848, lng: 2.396 },
     },
     {
       _id: new ObjectId(),
-      name: "Supérette Vieux-Port",
-      address: "2 Quai du Port, 13002 Marseille",
-      location: { lat: 43.296, lng: 5.37 },
+      name: "Supérette Vincennes",
+      address: "42 Rue de Fontenay, 94300 Vincennes",
+      location: { lat: 48.847, lng: 2.439 },
     },
     {
       _id: new ObjectId(),
-      name: "Supérette Canebière",
-      address: "80 La Canebière, 13001 Marseille",
-      location: { lat: 43.2965, lng: 5.379 },
+      name: "Supérette Saint-Denis Centre",
+      address: "3 Rue de la République, 93200 Saint-Denis",
+      location: { lat: 48.936, lng: 2.357 },
+    },
+    {
+      _id: new ObjectId(),
+      name: "Supérette Pantin",
+      address: "18 Avenue Jean Lolive, 93500 Pantin",
+      location: { lat: 48.899, lng: 2.407 },
+    },
+    {
+      _id: new ObjectId(),
+      name: "Supérette Créteil",
+      address: "10 Rue Juliette Récamier, 94000 Créteil",
+      location: { lat: 48.777, lng: 2.457 },
     },
   ];
   await stores.insertMany(storeDocs);
 
   const truckDocs = [
-    { _id: new ObjectId(), plateNumber: "AB-123-CD", packageCapacity: 120, fuelType: "diesel" as const, fuelConsumptionL100km: 28.5 },
-    { _id: new ObjectId(), plateNumber: "EF-456-GH", packageCapacity: 80,  fuelType: "diesel" as const, fuelConsumptionL100km: 24.0 },
-    { _id: new ObjectId(), plateNumber: "IJ-789-KL", packageCapacity: 200, fuelType: "essence" as const, fuelConsumptionL100km: 18.5 },
+    {
+      _id: new ObjectId(),
+      plateNumber: "AB-123-CD",
+      packageCapacity: 120,
+      fuelType: "diesel" as const,
+      fuelConsumptionL100km: 28.5,
+    },
+    {
+      _id: new ObjectId(),
+      plateNumber: "EF-456-GH",
+      packageCapacity: 80,
+      fuelType: "diesel" as const,
+      fuelConsumptionL100km: 24.0,
+    },
+    {
+      _id: new ObjectId(),
+      plateNumber: "IJ-789-KL",
+      packageCapacity: 200,
+      fuelType: "essence" as const,
+      fuelConsumptionL100km: 18.5,
+    },
   ];
   await trucks.insertMany(truckDocs);
 
@@ -112,21 +140,36 @@ export async function runSeed(): Promise<SeedResult> {
     },
     {
       _id: new ObjectId(),
-      firebaseUid: "seed-admin-1",
+      firebaseUid: "lUwH9yOaSgb1k3abu8Mi7hbnlxj1",
       email: "admin@tracktruck.dev",
       role: "admin" as const,
     },
     {
       _id: new ObjectId(),
-      firebaseUid: "seed-admin-2",
+      firebaseUid: "zXWb1pZPs6Rr2pkMXfSdqo4RoAM2",
       email: "marie.lefevre@tracktruck.dev",
       role: "admin" as const,
     },
   ];
 
-  const allSkills = ["frigorifique", "matières dangereuses", "fragile", "longue distance", "express"];
-  const allZones = ["Paris", "Lyon", "Marseille", "Bordeaux", "Lille", "Toulouse", "Nantes"];
-  const pick = <T,>(arr: T[], n: number, seed: number): T[] => {
+  const allSkills = [
+    "frigorifique",
+    "matières dangereuses",
+    "fragile",
+    "longue distance",
+    "express",
+  ];
+  const allZones = [
+    "Paris",
+    "Seine-Saint-Denis",
+    "Val-de-Marne",
+    "Hauts-de-Seine",
+    "Val-d'Oise",
+    "Essonne",
+    "Seine-et-Marne",
+    "Yvelines",
+  ];
+  const pick = <T>(arr: T[], n: number, seed: number): T[] => {
     const out: T[] = [];
     for (let i = 0; i < n; i++) out.push(arr[(seed + i * 3) % arr.length]);
     return Array.from(new Set(out));
@@ -147,30 +190,36 @@ export async function runSeed(): Promise<SeedResult> {
       zones: ["Paris", "Lille"],
     },
     ...[
-      ["Alice", "Martin"],
-      ["Bob", "Durand"],
-      ["Chloé", "Dubois"],
-      ["David", "Bernard"],
-      ["Emma", "Petit"],
-      ["Florian", "Robert"],
-      ["Gaëlle", "Richard"],
-      ["Hugo", "Moreau"],
-      ["Inès", "Laurent"],
-      ["Julien", "Simon"],
-      ["Karim", "Michel"],
-      ["Léa", "Garcia"],
-      ["Mathieu", "David"],
-      ["Nadia", "Bertrand"],
-      ["Olivier", "Roux"],
-      ["Pauline", "Vincent"],
-      ["Quentin", "Fournier"],
-      ["Romain", "Morel"],
-      ["Sophie", "Girard"],
-      ["Thomas", "Andre"],
+      ["Alice", "Martin", "GQNxnJ4j3Hau1sHBJL2l2wrHz3A2"],
+      ["Bob", "Durand", "OG5KjDNyYtXQ40tlifO6vtgSfbO2"],
+      ["Chloé", "Dubois", "rTNXd1rJ5VTKITZAg25UQyhmAwX2"],
+      ["David", "Bernard", "m3i6MCgpXdaXR9ssCChePpPDI252"],
+      ["Emma", "Petit", "iKfy2lTZmodc18t3eijAYTezI0G2"],
+      ["Florian", "Robert", "l99DsLwM0TfulHE8ZmfmMXUjdcG2"],
+      ["Gaëlle", "Richard", "4ppOz474KnPdZdhe12LLDtjfmWr2"],
+      ["Hugo", "Moreau", "hd3XvDk0rYeEEepTZBTO0Bw2R2w1"],
+      ["Inès", "Laurent", "jp7h9j1GmfPePJXBHkq4NzyMyrP2"],
+      ["Julien", "Simon", "b9dkwPlmXsNnqy3e0leVVFOgqE93"],
+      ["Karim", "Michel", "H6kLaXtDbYbJt12bRn5vA8q2wy1"],
+      ["Léa", "Garcia", "J0lWIvEIhzZnGsslgzvvQSxa5sl1"],
+      ["Mathieu", "David", "5elHYOYhS1fC1SIYnz4qbw6T4Km1"],
+      ["Nadia", "Bertrand", "poiTwBtRU5e0gFKwCiLhdwsk7L23"],
+      ["Olivier", "Roux", "7t1koUlJ4jgyDktczJaAnLOvFqA3"],
+      ["Pauline", "Vincent", "56YGrnCYpYYTfRsQEX9SifZpQ7z1"],
+      ["Quentin", "Fournier", "OW1XNFghHkdgkic9JkoifS2kVSQ2"],
+      ["Romain", "Morel", "aNSvRb8EHSYfW1b8JJf980yNTtF3"],
+      ["Sophie", "Girard", "mTYcHFOmRhRZoCOUbPmIh0FUmvE2"],
+      ["Thomas", "Andre", "T2YtMtyizgX9ENtf8GuSTnCrDVh1"],
     ].map(([firstName, lastName], i) => ({
       _id: new ObjectId(),
       firebaseUid: `seed-driver-${i + 1}`,
-      email: `${firstName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}.${lastName.toLowerCase()}@tracktruck.dev`,
+      email: `${firstName
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(
+          /[\u0300-\u036f]/g,
+          "",
+        )}.${lastName.toLowerCase()}@tracktruck.dev`,
       role: "driver" as const,
       firstName,
       lastName,
@@ -187,97 +236,90 @@ export async function runSeed(): Promise<SeedResult> {
   const hours = (h: number) => new Date(now + h * 3600_000);
 
   const deliveryDocs = [
-    // Paris — planned for tomorrow, not yet started.
     {
+      // Paris Nord → Bastille, République, Montmartre (planned)
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[0]._id,
       storeIds: [storeDocs[0]._id, storeDocs[2]._id, storeDocs[1]._id],
-      totalDistanceKm: 38.4,
-      totalDurationSeconds: 5040,
+      totalDistanceKm: 18.3,
+      totalDurationSeconds: 3240,
       plannedStartAt: hours(24),
       storeArrivals: [],
       status: "planned" as const,
-      truckId: truckDocs[0]._id,
+      roadSignIds: [],
+      wasRerouted: false,
       driverId: driverDocs[3]._id,
+      truckId: truckDocs[0]._id,
     },
-    // Lyon — currently in progress, no stop arrived yet.
     {
+      // Paris Est → Nation, Vincennes (started)
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[1]._id,
-      storeIds: [storeDocs[3]._id],
-      totalDistanceKm: 4.2,
-      totalDurationSeconds: 900,
+      storeIds: [storeDocs[3]._id, storeDocs[4]._id],
+      totalDistanceKm: 7.6,
+      totalDurationSeconds: 1440,
       plannedStartAt: hours(-2),
       actualStartAt: hours(-1.5),
       storeArrivals: [],
       status: "started" as const,
-      truckId: truckDocs[1]._id,
+      roadSignIds: [],
+      wasRerouted: false,
       driverId: driverDocs[0]._id,
+      truckId: truckDocs[1]._id,
     },
-    // Marseille — in progress, first stop done, second pending.
     {
+      // Paris Ouest → Pantin, Saint-Denis (done)
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[2]._id,
-      storeIds: [storeDocs[4]._id, storeDocs[5]._id],
-      totalDistanceKm: 5.8,
-      totalDurationSeconds: 1200,
-      plannedStartAt: hours(-3),
-      actualStartAt: hours(-2.5),
+      storeIds: [storeDocs[6]._id, storeDocs[5]._id],
+      totalDistanceKm: 22.1,
+      totalDurationSeconds: 4200,
+      plannedStartAt: hours(-48),
+      actualStartAt: hours(-47),
       storeArrivals: [
-        { storeId: storeDocs[4]._id, arrivedAt: hours(-1) },
+        { storeId: storeDocs[6]._id, arrivedAt: hours(-46.5) },
+        { storeId: storeDocs[5]._id, arrivedAt: hours(-46) },
       ],
-      status: "started" as const,
-      truckId: truckDocs[2]._id,
+      status: "done" as const,
+      roadSignIds: [],
+      wasRerouted: false,
       driverId: driverDocs[2]._id,
+      truckId: truckDocs[2]._id,
+    },
+    {
+      // Paris Nord → Créteil, Nation (planned demain matin)
+      _id: new ObjectId(),
+      departureWarehouseId: warehouseDocs[0]._id,
+      storeIds: [storeDocs[7]._id, storeDocs[3]._id],
+      totalDistanceKm: 31.4,
+      totalDurationSeconds: 5400,
+      plannedStartAt: hours(48),
+      storeArrivals: [],
+      status: "planned" as const,
+      roadSignIds: [],
+      wasRerouted: false,
+      driverId: driverDocs[1]._id,
+      truckId: truckDocs[0]._id,
     },
   ];
   await deliveries.insertMany(deliveryDocs);
 
-  // Lay down a trail of positions for each in-progress driver, walking from
-  // the departure warehouse towards their current neighborhood.
-  const trailFor = (
-    driverId: ObjectId,
-    deliveryId: ObjectId,
-    baseLat: number,
-    baseLng: number,
-    dLat: number,
-    dLng: number,
-    count: number,
-  ): TruckPositionTrace[] =>
-    Array.from({ length: count }, (_, i) => ({
-      _id: new ObjectId(),
-      driverId,
-      deliveryId,
-      position: {
-        lat: baseLat + i * dLat,
-        lng: baseLng + i * dLng,
-      },
-      timestamp: new Date(now - (count - i) * 60_000),
-    }));
+  const startedDelivery = deliveryDocs[1];
+  const movingDriver = driverDocs[0];
+  // La livraison en cours part de Paris Est, en direction de Nation
+  const baseLat = warehouseDocs[1].location.lat;
+  const baseLng = warehouseDocs[1].location.lng;
 
-  const lyonDelivery = deliveryDocs[1];
-  const marseilleDelivery = deliveryDocs[2];
-
-  const traceDocs: TruckPositionTrace[] = [
-    ...trailFor(
-      driverDocs[0]._id,
-      lyonDelivery._id,
-      warehouseDocs[1].location.lat,
-      warehouseDocs[1].location.lng,
-      0.002,
-      0.002,
-      6,
-    ),
-    ...trailFor(
-      driverDocs[2]._id,
-      marseilleDelivery._id,
-      warehouseDocs[2].location.lat,
-      warehouseDocs[2].location.lng,
-      -0.001,
-      0.0015,
-      6,
-    ),
-  ];
+  const traceDocs: TruckPositionTrace[] = Array.from({ length: 6 }, (_, i) => ({
+    _id: new ObjectId(),
+    driverId: movingDriver._id,
+    deliveryId: startedDelivery._id,
+    position: {
+      lat: baseLat + i * 0.002,
+      lng: baseLng + i * 0.002,
+    },
+    timestamp: new Date(now - (6 - i) * 60_000),
+  }));
   await truckPositionTraces.insertMany(traceDocs);
 
   return {

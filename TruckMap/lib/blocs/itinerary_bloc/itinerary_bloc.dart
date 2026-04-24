@@ -11,9 +11,8 @@ part 'itinerary_state.dart';
 class ItineraryBloc extends Bloc<ItineraryEvent, ItineraryState> {
   final ItineraryRepository itineraryRepository;
 
-  // Saved params for polling re-use
-  String? _lastStartPointId;
-  List<String>? _lastToVisitIds;
+  // Saved param for polling re-use
+  String? _lastDeliveryId;
 
   static const pollInterval = Duration(seconds: 30);
   Timer? _pollTimer;
@@ -29,8 +28,7 @@ class ItineraryBloc extends Bloc<ItineraryEvent, ItineraryState> {
     ComputeItinerary event,
     Emitter<ItineraryState> emit,
   ) async {
-    _lastStartPointId = event.startPointId;
-    _lastToVisitIds = event.toVisitIds;
+    _lastDeliveryId = event.deliveryId;
 
     await _compute(emit);
 
@@ -51,7 +49,7 @@ class ItineraryBloc extends Bloc<ItineraryEvent, ItineraryState> {
     _PollTick event,
     Emitter<ItineraryState> emit,
   ) async {
-    if (_lastStartPointId == null || _lastToVisitIds == null) return;
+    if (_lastDeliveryId == null) return;
     await _compute(emit);
   }
 
@@ -61,8 +59,7 @@ class ItineraryBloc extends Bloc<ItineraryEvent, ItineraryState> {
     }
     try {
       final itinerary = await itineraryRepository.computeItinerary(
-        startPointId: _lastStartPointId!,
-        toVisitIds: _lastToVisitIds!,
+        deliveryId: _lastDeliveryId!,
       );
       emit(state.copyWith(
         status: ItineraryStatus.success,

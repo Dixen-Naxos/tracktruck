@@ -1,6 +1,9 @@
-export type DriverStatus = "en-service" | "disponible" | "repos" | "conges";
-
-export type SkillFamily = "Permis" | "Habilitation" | "Matériel" | "Opérationnel" | "Zone";
+export type SkillFamily =
+  | "Permis"
+  | "Habilitation"
+  | "Matériel"
+  | "Opérationnel"
+  | "Zone";
 
 export interface Skill {
   id: string;
@@ -29,44 +32,23 @@ export interface RecentMission {
 
 export interface Driver {
   id: string;
-  matricule: string;
   firstName: string;
   lastName: string;
-  status: DriverStatus;
-  rating: number;
-  missions: number;
-  since: string;
   phone: string;
   email: string;
-  vehicle: string;
-  license: string;
-  expiry: string;
   skills: string[];
   zones: string[];
-  availability: Availability;
-  nextLeave: string;
-  onTimeRate: number;
-  incidents30d: number;
   avatarTone: number;
   initials: string;
-  recent: RecentMission[];
 }
 
 export interface Vehicle {
   id: string;
   driverId: string;
-  status: "en-route" | "livraison" | "retour" | "arret";
   load: number;
   eta: string;
   from: string;
   to: string;
-}
-
-export interface StatusMeta {
-  label: string;
-  dot: string;
-  text: string;
-  bg: string;
 }
 
 export interface UserBase {
@@ -99,7 +81,49 @@ export interface ToastItem {
   msg: string;
 }
 
-export type ViewKey = "carte" | "chauffeurs" | "commandes" | "dashcam" | "signalements";
+export type FuelType = "diesel" | "essence" | "electrique" | "hybride" | "gpl";
+
+export interface Truck {
+  id: string;
+  plateNumber: string;
+  packageCapacity: number;
+  fuelType: FuelType;
+  fuelConsumptionL100km: number;
+}
+
+export type ViewKey =
+  | "carte"
+  | "chauffeurs"
+  | "commandes"
+  | "camions"
+  | "dashcam"
+  | "signalements";
+
+export interface Order {
+  id: string;
+  nomClient: string;
+  produit: string;
+  quantite: number;
+  dateDebutCommande: string;
+  dateLivraisonVoulue: string;
+  rue: string;
+  ville: string;
+  codePostal: string;
+  pays: string;
+}
+
+export type IncidentType =
+  | "external"
+  | "delivery_delayed"
+  | "vehicle_breakdown";
+
+export interface Incident {
+  id: string;
+  type: IncidentType;
+  position: { lat: number; lng: number };
+  timestamp: string;
+  comment?: string;
+}
 
 export interface DashcamVideo {
   id: string;
@@ -108,4 +132,6 @@ export interface DashcamVideo {
   driver: { id: string; firstName: string; lastName: string } | null;
   truckId?: string;
   deliveryId?: string;
+  retained: boolean;
+  retentionNote?: string;
 }

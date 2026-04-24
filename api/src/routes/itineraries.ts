@@ -1,22 +1,15 @@
 import { Hono } from "hono";
 import { describeRoute, validator } from "hono-openapi";
-import { ObjectId } from "mongodb";
 import { z } from "zod";
-import type { AuthEnv } from "../auth/middleware.js";
-import {
-  computeItinerary,
-  resolveWaypointFromId,
-} from "../features/itineraries/computeItinerary.js";
+import { requireAuth, type AuthEnv } from "../auth/middleware.js";
+import { computeItinerary } from "../features/itineraries/computeItinerary.js";
 import { previewRoute } from "../features/itineraries/previewRoute.js";
-
-const objectIdSchema = z
-  .string()
-  .refine((s) => ObjectId.isValid(s), "Invalid ID")
-  .transform((s) => new ObjectId(s));
+import { zObjectId } from "../utils/idParamSchema.js";
 
 const computeItinerarySchema = z.object({
-  startPointId: objectIdSchema,
-  toVisitIds: z.array(objectIdSchema).min(1),
+  startPointId: zObjectId,
+  toVisitIds: z.array(zObjectId).min(1),
+  departureTime: z.iso.datetime().transform((s) => new Date(s)).optional(),
 });
 
 const latLngSchema = z.object({ lat: z.number(), lng: z.number() });
@@ -27,7 +20,7 @@ const previewRouteSchema = z.object({
 });
 
 export const itinerariesRoute = new Hono<AuthEnv>()
-  // .use("*", requireAuth, requireRole("admin", "driver"))
+  .use("*", requireAuth)
   .post(
     "/compute",
     describeRoute({
@@ -46,6 +39,7 @@ export const itinerariesRoute = new Hono<AuthEnv>()
                 "684a1f2e3c4b5d6e7f8a9b0e",
                 "684a1f2e3c4b5d6e7f8a9b0f",
               ],
+              departureTime: "2026-04-25T08:00:00Z",
             },
           },
         },
@@ -58,12 +52,12 @@ export const itinerariesRoute = new Hono<AuthEnv>()
     }),
     validator("json", computeItinerarySchema),
     async (c) => {
-      const { startPointId, toVisitIds } = c.req.valid("json");
-
-      const start = await resolveWaypointFromId(startPointId);
-      const stops = await Promise.all(toVisitIds.map(resolveWaypointFromId));
-
-      const itinerary = await computeItinerary({ start, stops });
+      const { startPointId, toVisitIds, departureTime } = c.req.valid("json");
+      const itinerary = await computeItinerary({
+        startPointId,
+        toVisitIds,
+        departureTime,
+      });
       return c.json({ itinerary });
     },
   )
