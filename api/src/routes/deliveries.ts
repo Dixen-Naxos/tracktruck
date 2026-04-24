@@ -1,28 +1,22 @@
 import { Hono } from "hono";
 import { describeRoute, validator } from "hono-openapi";
-import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { requireAuth, requireRole, type AuthEnv } from "../auth/middleware.js";
 import { assignDriverToDelivery } from "../features/deliveries/assignDriver.js";
 import { createDelivery } from "../features/deliveries/createDelivery.js";
 import { listDeliveries } from "../features/deliveries/listDeliveries.js";
 import { computeItinerary } from "../features/itineraries/computeItinerary.js";
-import { idParamSchema } from "../utils/idParamSchema.js";
-
-const objectIdSchema = z
-  .string()
-  .refine((s) => ObjectId.isValid(s), "Invalid ID")
-  .transform((s) => new ObjectId(s));
+import { idParamSchema, zObjectId } from "../utils/idParamSchema.js";
 
 const createDeliverySchema = z.object({
-  departureWarehouseId: objectIdSchema,
+  departureWarehouseId: zObjectId,
   /** IDs of stores to visit (order will be optimized by Google) */
-  storeIds: z.array(objectIdSchema).min(1),
+  storeIds: z.array(zObjectId).min(1),
   plannedStartAt: z.iso.datetime().transform((s) => new Date(s)),
 });
 
 export const deliveriesRoute = new Hono<AuthEnv>()
-  // .use("*", requireAuth, requireRole("admin"))
+  .use(requireAuth)
   .post(
     "/",
     describeRoute({
@@ -52,9 +46,11 @@ export const deliveriesRoute = new Hono<AuthEnv>()
         502: { description: "Google Routes API error" },
       },
     }),
+    requireRole("admin"),
     validator("json", createDeliverySchema),
     async (c) => {
-      const { departureWarehouseId, storeIds, plannedStartAt } = c.req.valid("json");
+      const { departureWarehouseId, storeIds, plannedStartAt } =
+        c.req.valid("json");
 
       const itineraryResult = await computeItinerary({
         startPointId: departureWarehouseId,
@@ -81,7 +77,7 @@ export const deliveriesRoute = new Hono<AuthEnv>()
         200: { description: "List of deliveries" },
       },
     }),
-    requireAuth,
+    requireRole("admin"),
     async (c) => {
       const user = c.get("user");
       if (user.role === "driver") {
@@ -104,13 +100,12 @@ export const deliveriesRoute = new Hono<AuthEnv>()
         404: { description: "Delivery or driver not found" },
       },
     }),
-    requireAuth,
     requireRole("admin"),
     validator("param", idParamSchema),
     validator(
       "json",
       z.object({
-        driverId: z.union([objectIdSchema, z.null()]),
+        driverId: zObjectId.nullable(),
       }),
     ),
     async (c) => {
