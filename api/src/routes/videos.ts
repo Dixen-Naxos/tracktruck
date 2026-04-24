@@ -7,6 +7,7 @@ import { createDashcamVideoUpload } from "../features/dashcam-videos/createUploa
 import { getDashcamVideoDownloadUrl } from "../features/dashcam-videos/getDownloadUrl.js";
 import { listDashcamVideos } from "../features/dashcam-videos/listVideos.js";
 import { retainVideo, unretainVideo } from "../features/dashcam-videos/retainVideo.js";
+import { getVideoPolicy, setVideoPolicy } from "../features/dashcam-videos/videoPolicy.js";
 
 const uploadUrlSchema = z.object({
   timestamp: z.iso.datetime().transform((s) => new Date(s)),
@@ -31,7 +32,42 @@ const retainBodySchema = z.object({
   note: z.string().min(1),
 });
 
+const policyBodySchema = z.object({
+  retentionDays: z.number().int().positive(),
+});
+
 export const videosRoute = new Hono<AuthEnv>()
+  .get(
+    "/policy",
+    describeRoute({
+      summary: "Get video retention policy",
+      tags: ["Videos"],
+      responses: { 200: { description: "Current retention policy" } },
+    }),
+    requireAuth,
+    requireRole("admin"),
+    async (c) => c.json(await getVideoPolicy()),
+  )
+  .put(
+    "/policy",
+    describeRoute({
+      summary: "Update video retention policy",
+      description: "Sets the number of days after which non-retained videos are automatically deleted.",
+      tags: ["Videos"],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: { description: "Updated policy" },
+        400: { description: "Invalid retentionDays" },
+      },
+    }),
+    requireAuth,
+    requireRole("admin"),
+    validator("json", policyBodySchema),
+    async (c) => {
+      const { retentionDays } = c.req.valid("json");
+      return c.json(await setVideoPolicy(retentionDays));
+    },
+  )
   .get(
     "/",
     describeRoute({

@@ -1,10 +1,11 @@
 import { dashcamVideos } from "../../db/DashcamVideo.js";
 import { dashcamBucket } from "../../storage/bucket.js";
-
-const RETENTION_DAYS = Number(process.env.VIDEO_RETENTION_DAYS ?? 30);
+import { getVideoPolicy } from "./videoPolicy.js";
 
 export async function cleanupOldVideos(): Promise<{ deleted: number; errors: number }> {
-  const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  const { retentionDays } = await getVideoPolicy();
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+  console.log(`[cleanup] Retention: ${retentionDays} days — cutoff: ${cutoff.toISOString()}`);
 
   const toDelete = await dashcamVideos
     .find({ timestamp: { $lt: cutoff }, retained: { $ne: true } })
