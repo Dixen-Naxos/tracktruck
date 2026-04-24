@@ -189,7 +189,7 @@ class _DeliveryCard extends StatelessWidget {
           toVisitIds: delivery.storeIds,
         ));
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const MapScreen()),
+      MaterialPageRoute(builder: (_) => MapScreen(deliveryId: delivery.id)),
     );
   }
 }
