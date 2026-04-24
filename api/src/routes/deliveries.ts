@@ -8,6 +8,8 @@ import { listDeliveries } from "../features/deliveries/listDeliveries.js";
 import { getDeliveryFuelConsumption } from "../features/deliveries/getFuelConsumption.js";
 import { getDeliveryTripCost } from "../features/deliveries/getTripCost.js";
 import { computeItinerary } from "../features/itineraries/computeItinerary.js";
+import { idParamSchema, zObjectId } from "../utils/idParamSchema.js";
+import { assignDriverToDelivery } from "../features/deliveries/assignDriver.js";
 
 const objectIdSchema = z
   .string()
@@ -17,7 +19,6 @@ const objectIdSchema = z
 const deliveryIdParamSchema = z.object({
   deliveryId: objectIdSchema,
 });
-
 
 const createDeliverySchema = z.object({
   departureWarehouseId: objectIdSchema,
@@ -59,7 +60,8 @@ export const deliveriesRoute = new Hono<AuthEnv>()
     }),
     validator("json", createDeliverySchema),
     async (c) => {
-      const { departureWarehouseId, storeIds, plannedStartAt } = c.req.valid("json");
+      const { departureWarehouseId, storeIds, plannedStartAt } =
+        c.req.valid("json");
 
       const itineraryResult = await computeItinerary({
         startPointId: departureWarehouseId,
@@ -92,7 +94,8 @@ export const deliveriesRoute = new Hono<AuthEnv>()
     "/:deliveryId/fuel-consumption",
     describeRoute({
       summary: "Get fuel consumption for a delivery",
-      description: "Returns the fuel consumption in liters based on the truck assigned to the delivery and its total distance.",
+      description:
+        "Returns the fuel consumption in liters based on the truck assigned to the delivery and its total distance.",
       tags: ["Deliveries"],
       responses: {
         200: { description: "Fuel consumption details" },
@@ -110,12 +113,16 @@ export const deliveriesRoute = new Hono<AuthEnv>()
     "/:deliveryId/trip-cost",
     describeRoute({
       summary: "Get the fuel cost of a delivery",
-      description: "Calculates the total fuel cost based on the truck's consumption, the delivery's distance, and the live price per liter fetched from prix-carburants.2aaz.fr.",
+      description:
+        "Calculates the total fuel cost based on the truck's consumption, the delivery's distance, and the live price per liter fetched from prix-carburants.2aaz.fr.",
       tags: ["Deliveries"],
       responses: {
         200: { description: "Trip cost breakdown" },
         404: { description: "Delivery or truck not found" },
-        422: { description: "No truck assigned or fuel type has no price (e.g. electric)" },
+        422: {
+          description:
+            "No truck assigned or fuel type has no price (e.g. electric)",
+        },
         502: { description: "Fuel price API error" },
       },
     }),
@@ -123,5 +130,34 @@ export const deliveriesRoute = new Hono<AuthEnv>()
     async (c) => {
       const { deliveryId } = c.req.valid("param");
       return c.json(await getDeliveryTripCost(deliveryId));
+    },
+  )
+  .put(
+    "/:id/driver",
+    describeRoute({
+      summary: "Assign or reassign a driver to a delivery (admin only)",
+      description:
+        "Sets the driver of a delivery. Pass `driverId: null` to unassign.",
+      tags: ["Deliveries"],
+      responses: {
+        200: { description: "Driver assigned" },
+        400: { description: "Target user is not a driver" },
+        403: { description: "Forbidden — admin role required" },
+        404: { description: "Delivery or driver not found" },
+      },
+    }),
+    requireRole("admin"),
+    validator("param", idParamSchema),
+    validator(
+      "json",
+      z.object({
+        driverId: zObjectId.nullable(),
+      }),
+    ),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const { driverId } = c.req.valid("json");
+      const delivery = await assignDriverToDelivery(id, driverId);
+      return c.json(delivery);
     },
   );
