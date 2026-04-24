@@ -9,9 +9,15 @@ type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 type TokenGetter = () => Promise<string | null>;
 
 let _tokenGetter: TokenGetter | null = null;
-export function setTokenGetter(fn: TokenGetter) { _tokenGetter = fn; }
+export function setTokenGetter(fn: TokenGetter) {
+  _tokenGetter = fn;
+}
 
-async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+async function request<T>(
+  method: Method,
+  path: string,
+  body?: unknown,
+): Promise<T> {
   if (path.startsWith("/api/")) {
     await _devDelay();
     return _devStub<T>(method, path, body);
@@ -38,52 +44,46 @@ type ApiDriver = {
   firstName: string;
   lastName: string;
   email: string;
-  phone?: string;
-  skills?: string[];
-  zones?: string[];
-  matricule?: string;
-  status?: Driver["status"];
-  rating?: number;
-  missions?: number;
-  vehicle?: string;
+  phone: string;
+  skills: string[];
+  zones: string[];
 };
 
 function toDriver(raw: ApiDriver): Driver {
-  const tone = (raw.firstName.charCodeAt(0) * 37 + raw.lastName.charCodeAt(0) * 17) % 360;
+  const tone =
+    (raw.firstName.charCodeAt(0) * 37 + raw.lastName.charCodeAt(0) * 17) % 360;
   return {
-    id:           raw._id,
-    matricule:    raw.matricule ?? "—",
-    firstName:    raw.firstName,
-    lastName:     raw.lastName,
-    status:       raw.status ?? "disponible",
-    rating:       raw.rating ?? 0,
-    missions:     raw.missions ?? 0,
-    since:        "—",
-    phone:        raw.phone ?? "—",
-    email:        raw.email,
-    vehicle:      raw.vehicle ?? "—",
-    license:      "",
-    expiry:       "",
-    skills:       raw.skills ?? [],
-    zones:        raw.zones ?? [],
-    availability: { mon: 1, tue: 1, wed: 1, thu: 1, fri: 1, sat: 0, sun: 0 },
-    nextLeave:    "—",
-    onTimeRate:   0,
-    incidents30d: 0,
-    avatarTone:   tone,
-    initials:     (raw.firstName[0] + raw.lastName[0]).toUpperCase(),
-    recent:       [],
+    id: raw._id,
+    firstName: raw.firstName,
+    lastName: raw.lastName,
+    phone: raw.phone ?? "—",
+    email: raw.email,
+    skills: raw.skills ?? [],
+    zones: raw.zones ?? [],
+    avatarTone: tone,
+    initials: (raw.firstName[0] + raw.lastName[0]).toUpperCase(),
   };
 }
 
 export const ApiDrivers = {
-  list:       async ()                                   => (await request<ApiDriver[]>("GET",   "/drivers")).map(toDriver),
-  get:        (id: string)                               => request<Driver>("GET",    `/api/drivers/${id}`),
-  create:     (input: Omit<Driver, "id">)                => request<Driver>("POST",   "/api/drivers", input),
-  createUser: async (input: DriverUser)                  => toDriver(await request<ApiDriver>("POST", "/drivers", input)),
-  update:     async (id: string, patch: { firstName?: string; lastName?: string; phone?: string; skills?: string[]; zones?: string[] }) =>
-    toDriver(await request<ApiDriver>("PATCH", `/drivers/${id}`, patch)),
-  remove:     (id: string)                               => request<void> ("DELETE",  `/drivers/${id}`),
+  list: async () =>
+    (await request<ApiDriver[]>("GET", "/drivers")).map(toDriver),
+  get: (id: string) => request<Driver>("GET", `/api/drivers/${id}`),
+  create: (input: Omit<Driver, "id">) =>
+    request<Driver>("POST", "/api/drivers", input),
+  createUser: async (input: DriverUser) =>
+    toDriver(await request<ApiDriver>("POST", "/drivers", input)),
+  update: async (
+    id: string,
+    patch: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      skills?: string[];
+      zones?: string[];
+    },
+  ) => toDriver(await request<ApiDriver>("PATCH", `/drivers/${id}`, patch)),
+  remove: (id: string) => request<void>("DELETE", `/drivers/${id}`),
 };
 
 // ─── ApiOrders ────────────────────────────────────────────────────────────────
@@ -133,28 +133,15 @@ function _devStub<T>(method: Method, path: string, body?: unknown): T {
   if (path === "/drivers" && method === "POST") {
     const input = body as DriverUser;
     const created: Driver = {
-      id:           "D-" + Math.random().toString(36).slice(2, 6).toUpperCase(),
-      matricule:    `TT-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
-      firstName:    input.firstName,
-      lastName:     input.lastName,
-      phone:        input.phone,
-      email:        input.email,
-      skills:       input.skills,
-      zones:        input.zones,
-      status:       "disponible",
-      rating:       0,
-      missions:     0,
-      since:        new Date().toISOString().slice(0, 10),
-      vehicle:      "—",
-      license:      "",
-      expiry:       "",
-      availability: { mon: 1, tue: 1, wed: 1, thu: 1, fri: 1, sat: 0, sun: 0 },
-      nextLeave:    "—",
-      onTimeRate:   0,
-      incidents30d: 0,
-      avatarTone:   Math.floor(Math.random() * 360),
-      initials:     (input.firstName[0] + input.lastName[0]).toUpperCase(),
-      recent:       [],
+      id: "D-" + Math.random().toString(36).slice(2, 6).toUpperCase(),
+      firstName: input.firstName,
+      lastName: input.lastName,
+      phone: input.phone,
+      email: input.email,
+      skills: input.skills,
+      zones: input.zones,
+      avatarTone: Math.floor(Math.random() * 360),
+      initials: (input.firstName[0] + input.lastName[0]).toUpperCase(),
     };
     _driversStore = [created, ..._driversStore];
     return created as T;
@@ -196,20 +183,29 @@ function _devStub<T>(method: Method, path: string, body?: unknown): T {
 
   throw new Error(`Dev stub: route not handled — ${method} ${path}`);
 }
-export function listDashcamVideos(from?: string, to?: string): Promise<DashcamVideo[]> {
+export function listDashcamVideos(
+  from?: string,
+  to?: string,
+): Promise<DashcamVideo[]> {
   const params = new URLSearchParams();
   if (from) params.set("from", from);
-  if (to)   params.set("to", to);
+  if (to) params.set("to", to);
   const query = params.size ? `?${params}` : "";
   return request<DashcamVideo[]>("GET", `/videos${query}`);
 }
 
 export async function getDashcamVideoUrl(videoId: string): Promise<string> {
-  const { downloadUrl } = await request<{ downloadUrl: string }>("GET", `/videos/${videoId}/download-url`);
+  const { downloadUrl } = await request<{ downloadUrl: string }>(
+    "GET",
+    `/videos/${videoId}/download-url`,
+  );
   return downloadUrl;
 }
 
-export function retainDashcamVideo(videoId: string, note: string): Promise<unknown> {
+export function retainDashcamVideo(
+  videoId: string,
+  note: string,
+): Promise<unknown> {
   return request("PATCH", `/videos/${videoId}/retain`, { note });
 }
 
@@ -221,6 +217,8 @@ export function getVideoPolicy(): Promise<{ retentionDays: number }> {
   return request("GET", "/videos/policy");
 }
 
-export function setVideoPolicy(retentionDays: number): Promise<{ retentionDays: number }> {
+export function setVideoPolicy(
+  retentionDays: number,
+): Promise<{ retentionDays: number }> {
   return request("PUT", "/videos/policy", { retentionDays });
 }

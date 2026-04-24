@@ -1,6 +1,11 @@
 export type DriverStatus = "en-service" | "disponible" | "repos" | "conges";
 
-export type SkillFamily = "Permis" | "Habilitation" | "Matériel" | "Opérationnel" | "Zone";
+export type SkillFamily =
+  | "Permis"
+  | "Habilitation"
+  | "Matériel"
+  | "Opérationnel"
+  | "Zone";
 
 export interface Skill {
   id: string;
@@ -29,27 +34,14 @@ export interface RecentMission {
 
 export interface Driver {
   id: string;
-  matricule: string;
   firstName: string;
   lastName: string;
-  status: DriverStatus;
-  rating: number;
-  missions: number;
-  since: string;
   phone: string;
   email: string;
-  vehicle: string;
-  license: string;
-  expiry: string;
   skills: string[];
   zones: string[];
-  availability: Availability;
-  nextLeave: string;
-  onTimeRate: number;
-  incidents30d: number;
   avatarTone: number;
   initials: string;
-  recent: RecentMission[];
 }
 
 export interface Vehicle {
@@ -99,7 +91,12 @@ export interface ToastItem {
   msg: string;
 }
 
-export type ViewKey = "carte" | "chauffeurs" | "commandes" | "dashcam" | "signalements";
+export type ViewKey =
+  | "carte"
+  | "chauffeurs"
+  | "commandes"
+  | "dashcam"
+  | "signalements";
 
 export type IncidentType = "external" | "delivery_delayed" | "vehicle_breakdown";
 
