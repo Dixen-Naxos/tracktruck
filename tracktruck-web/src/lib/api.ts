@@ -85,6 +85,60 @@ export const ApiDrivers = {
   remove:     (id: string)                               => request<void> ("DELETE",  `/api/drivers/${id}`),
 };
 
+// ─── ApiTrucks ────────────────────────────────────────────────────────────────
+
+export type ApiLatLng = { lat: number; lng: number };
+
+export type ApiStopArrival = {
+  _id: string;
+  name: string;
+  address: string;
+  location: ApiLatLng;
+  arrivedAt: string | null;
+};
+
+export type ApiEnrichedDelivery = {
+  _id: string;
+  status: "planned" | "started" | "done";
+  plannedStartAt: string;
+  actualStartAt: string | null;
+  totalDistanceKm: number;
+  totalDurationSeconds: number;
+  departureWarehouse: {
+    _id: string;
+    name: string;
+    address: string;
+    location: ApiLatLng;
+  } | null;
+  stops: ApiStopArrival[];
+};
+
+export type ApiTruck = {
+  _id: string;
+  plateNumber: string;
+  packageCapacity: number;
+  fuelType: "diesel" | "essence" | "electrique" | "hybride" | "gpl";
+  fuelConsumptionL100km: number;
+  driver: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+  } | null;
+  currentDelivery: ApiEnrichedDelivery | null;
+  currentPosition: {
+    lat: number;
+    lng: number;
+    timestamp: string;
+  } | null;
+};
+
+export const ApiTrucks = {
+  list: () => request<ApiTruck[]>("GET", "/trucks"),
+  get:  (id: string) => request<ApiTruck>("GET", `/trucks/${id}`),
+};
+
 // ─── ApiOrders ────────────────────────────────────────────────────────────────
 
 // export const ApiOrders = {

@@ -187,6 +187,7 @@ export async function runSeed(): Promise<SeedResult> {
   const hours = (h: number) => new Date(now + h * 3600_000);
 
   const deliveryDocs = [
+    // Paris — planned for tomorrow, not yet started.
     {
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[0]._id,
@@ -196,8 +197,10 @@ export async function runSeed(): Promise<SeedResult> {
       plannedStartAt: hours(24),
       storeArrivals: [],
       status: "planned" as const,
+      truckId: truckDocs[0]._id,
       driverId: driverDocs[3]._id,
     },
+    // Lyon — currently in progress, no stop arrived yet.
     {
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[1]._id,
@@ -208,41 +211,73 @@ export async function runSeed(): Promise<SeedResult> {
       actualStartAt: hours(-1.5),
       storeArrivals: [],
       status: "started" as const,
+      truckId: truckDocs[1]._id,
       driverId: driverDocs[0]._id,
     },
+    // Marseille — in progress, first stop done, second pending.
     {
       _id: new ObjectId(),
       departureWarehouseId: warehouseDocs[2]._id,
       storeIds: [storeDocs[4]._id, storeDocs[5]._id],
       totalDistanceKm: 5.8,
       totalDurationSeconds: 1200,
-      plannedStartAt: hours(-48),
-      actualStartAt: hours(-47),
+      plannedStartAt: hours(-3),
+      actualStartAt: hours(-2.5),
       storeArrivals: [
-        { storeId: storeDocs[4]._id, arrivedAt: hours(-46.5) },
-        { storeId: storeDocs[5]._id, arrivedAt: hours(-46) },
+        { storeId: storeDocs[4]._id, arrivedAt: hours(-1) },
       ],
-      status: "done" as const,
+      status: "started" as const,
+      truckId: truckDocs[2]._id,
       driverId: driverDocs[2]._id,
     },
   ];
   await deliveries.insertMany(deliveryDocs);
 
-  const startedDelivery = deliveryDocs[1];
-  const movingDriver = driverDocs[0];
-  const baseLat = warehouseDocs[1].location.lat;
-  const baseLng = warehouseDocs[1].location.lng;
+  // Lay down a trail of positions for each in-progress driver, walking from
+  // the departure warehouse towards their current neighborhood.
+  const trailFor = (
+    driverId: ObjectId,
+    deliveryId: ObjectId,
+    baseLat: number,
+    baseLng: number,
+    dLat: number,
+    dLng: number,
+    count: number,
+  ): TruckPositionTrace[] =>
+    Array.from({ length: count }, (_, i) => ({
+      _id: new ObjectId(),
+      driverId,
+      deliveryId,
+      position: {
+        lat: baseLat + i * dLat,
+        lng: baseLng + i * dLng,
+      },
+      timestamp: new Date(now - (count - i) * 60_000),
+    }));
 
-  const traceDocs: TruckPositionTrace[] = Array.from({ length: 6 }, (_, i) => ({
-    _id: new ObjectId(),
-    driverId: movingDriver._id,
-    deliveryId: startedDelivery._id,
-    position: {
-      lat: baseLat + i * 0.002,
-      lng: baseLng + i * 0.002,
-    },
-    timestamp: new Date(now - (6 - i) * 60_000),
-  }));
+  const lyonDelivery = deliveryDocs[1];
+  const marseilleDelivery = deliveryDocs[2];
+
+  const traceDocs: TruckPositionTrace[] = [
+    ...trailFor(
+      driverDocs[0]._id,
+      lyonDelivery._id,
+      warehouseDocs[1].location.lat,
+      warehouseDocs[1].location.lng,
+      0.002,
+      0.002,
+      6,
+    ),
+    ...trailFor(
+      driverDocs[2]._id,
+      marseilleDelivery._id,
+      warehouseDocs[2].location.lat,
+      warehouseDocs[2].location.lng,
+      -0.001,
+      0.0015,
+      6,
+    ),
+  ];
   await truckPositionTraces.insertMany(traceDocs);
 
   return {

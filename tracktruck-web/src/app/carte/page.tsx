@@ -8,12 +8,12 @@ import { TruckDetailDrawer } from "@/components/carte/TruckDetailDrawer";
 import {
   STATUS_COLORS,
   STATUS_LABELS,
-  TRUCKS_LIVE,
   type LatLng,
   type RouteStop,
   type TruckLive,
   type TruckLiveStatus,
 } from "@/lib/trucks-live";
+import { fetchTrucksLive } from "@/lib/trucks-live-api";
 
 type StatusFilter = "all" | TruckLiveStatus;
 
@@ -22,7 +22,11 @@ function isStopLocked(stop: RouteStop): boolean {
 }
 
 export default function CartePage() {
-  const [trucks, setTrucks] = React.useState<TruckLive[]>(TRUCKS_LIVE);
+  const [trucks, setTrucks] = React.useState<TruckLive[]>([]);
+  const [trucksStatus, setTrucksStatus] = React.useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [trucksError, setTrucksError] = React.useState<string | null>(null);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
@@ -31,6 +35,37 @@ export default function CartePage() {
   const [movingOnly, setMovingOnly] = React.useState(false);
   const [mapClickPosition, setMapClickPosition] = React.useState<LatLng | null>(null);
   const [mapClickVersion, setMapClickVersion] = React.useState(0);
+
+  // Load trucks from the backend. Re-poll every 10s to keep positions fresh.
+  React.useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const load = async (isInitial: boolean) => {
+      if (isInitial) setTrucksStatus("loading");
+      try {
+        const next = await fetchTrucksLive();
+        if (cancelled) return;
+        setTrucks(next);
+        setTrucksStatus("success");
+        setTrucksError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setTrucksStatus("error");
+        setTrucksError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (!cancelled) {
+          timer = setTimeout(() => load(false), 10_000);
+        }
+      }
+    };
+
+    load(true);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
 
   const filteredTrucks = React.useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -303,9 +338,24 @@ export default function CartePage() {
           </div>
 
           <div className="tt-carte-list-body">
-            {filteredTrucks.length === 0 ? (
+            {trucksStatus === "loading" && trucks.length === 0 ? (
+              <div className="tt-carte-list-empty">Chargement des véhicules…</div>
+            ) : null}
+            {trucksStatus === "error" ? (
+              <div className="tt-carte-list-empty">
+                Erreur de chargement : {trucksError ?? "—"}
+              </div>
+            ) : null}
+            {trucksStatus === "success" &&
+            trucks.length > 0 &&
+            filteredTrucks.length === 0 ? (
               <div className="tt-carte-list-empty">
                 Aucun véhicule ne correspond aux filtres.
+              </div>
+            ) : null}
+            {trucksStatus === "success" && trucks.length === 0 ? (
+              <div className="tt-carte-list-empty">
+                Aucun camion dans la flotte pour l&apos;instant.
               </div>
             ) : null}
             {filteredTrucks.map((t) => {
