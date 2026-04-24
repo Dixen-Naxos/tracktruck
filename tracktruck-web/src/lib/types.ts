@@ -1,5 +1,3 @@
-export type DriverStatus = "en-service" | "disponible" | "repos" | "conges";
-
 export type SkillFamily =
   | "Permis"
   | "Habilitation"
@@ -47,18 +45,10 @@ export interface Driver {
 export interface Vehicle {
   id: string;
   driverId: string;
-  status: "en-route" | "livraison" | "retour" | "arret";
   load: number;
   eta: string;
   from: string;
   to: string;
-}
-
-export interface StatusMeta {
-  label: string;
-  dot: string;
-  text: string;
-  bg: string;
 }
 
 export interface UserBase {
@@ -111,7 +101,10 @@ export interface Order {
   pays: string;
 }
 
-export type IncidentType = "external" | "delivery_delayed" | "vehicle_breakdown";
+export type IncidentType =
+  | "external"
+  | "delivery_delayed"
+  | "vehicle_breakdown";
 
 export interface Incident {
   id: string;

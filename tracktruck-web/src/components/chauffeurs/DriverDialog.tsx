@@ -6,13 +6,7 @@ import { InputText } from "primereact/inputtext";
 import { Chips } from "primereact/chips";
 import { SelectButton } from "primereact/selectbutton";
 import { Button } from "primereact/button";
-import {
-  Avatar,
-  Btn,
-  Hairline,
-  KeyStat,
-  StatusPill,
-} from "@/components/primitives";
+import { Avatar, Btn } from "@/components/primitives";
 import { Icon } from "@/components/icons";
 import { SKILLS } from "@/lib/data";
 import { ApiDrivers } from "@/lib/api";

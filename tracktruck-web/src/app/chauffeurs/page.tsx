@@ -17,7 +17,7 @@ import { DriverDialog } from "@/components/chauffeurs/DriverDialog";
 import { SKILLS } from "@/lib/data";
 import { ApiDrivers } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
-import type { Driver, DriverStatus, DriverUser } from "@/lib/types";
+import type { Driver, DriverUser } from "@/lib/types";
 import { useEffect } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";

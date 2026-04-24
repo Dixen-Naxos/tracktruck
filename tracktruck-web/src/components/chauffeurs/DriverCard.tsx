@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Avatar, Card, Hairline, SkillTag, StatusPill } from "../primitives";
+import { Avatar, Card, Hairline, SkillTag } from "../primitives";
 import { Icon } from "../icons";
 import { SKILLS } from "@/lib/data";
 import type { Driver } from "@/lib/types";
