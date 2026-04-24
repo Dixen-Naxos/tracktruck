@@ -199,7 +199,7 @@ export async function computeItinerary(
   if (!apiKey) throw new Error("GOOGLE_MAPS_API_KEY is not set");
 
   const truck: TruckProfile = { ...DEFAULT_TRUCK, ...input.truck };
-  const { startPointId, toVisitIds, departureTime = new Date() } = input;
+  const { startPointId, toVisitIds, departureTime = departureTime ? departureTime : new Date(Date.now() + 60_000) } = input;
 
   const startPoint = await resolvePoint(startPointId);
   const stopPoints = await Promise.all(toVisitIds.map(resolvePoint));
