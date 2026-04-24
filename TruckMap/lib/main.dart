@@ -10,6 +10,7 @@ import 'package:truck_map/blocs/itinerary_bloc/itinerary_bloc.dart';
 import 'package:truck_map/blocs/location_bloc/location_bloc.dart';
 import 'package:truck_map/firebase_options.dart';
 import 'package:truck_map/repositories/delivery_repository.dart';
+import 'package:truck_map/repositories/driver_position_repository.dart';
 import 'package:truck_map/repositories/incident_repository.dart';
 import 'package:truck_map/repositories/itinerary_data_source/remote_itinerary_data_source.dart';
 import 'package:truck_map/repositories/itinerary_repository.dart';
@@ -30,6 +31,8 @@ void main() async {
   );
   final deliveryRepository = DeliveryRepository(client: httpClient);
   final incidentRepository = IncidentRepository(client: httpClient);
+  final driverPositionRepository =
+      DriverPositionRepository(client: httpClient);
 
   runApp(TruckMap(
     authService: authService,
@@ -37,6 +40,7 @@ void main() async {
     itineraryRepository: itineraryRepository,
     deliveryRepository: deliveryRepository,
     incidentRepository: incidentRepository,
+    driverPositionRepository: driverPositionRepository,
   ));
 }
 
@@ -46,6 +50,7 @@ class TruckMap extends StatelessWidget {
   final ItineraryRepository itineraryRepository;
   final DeliveryRepository deliveryRepository;
   final IncidentRepository incidentRepository;
+  final DriverPositionRepository driverPositionRepository;
 
   const TruckMap({
     super.key,
@@ -54,6 +59,7 @@ class TruckMap extends StatelessWidget {
     required this.itineraryRepository,
     required this.deliveryRepository,
     required this.incidentRepository,
+    required this.driverPositionRepository,
   });
 
   @override
@@ -82,7 +88,9 @@ class TruckMap extends StatelessWidget {
             create: (_) => IncidentBloc(repository: incidentRepository),
           ),
           BlocProvider(
-            create: (_) => LocationBloc()..add(StartTracking()),
+            create: (_) => LocationBloc(
+                  driverPositionRepository: driverPositionRepository,
+                ),
           ),
         ],
         child: MaterialApp(

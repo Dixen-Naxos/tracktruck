@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:truck_map/repositories/delivery_repository.dart';
+import 'package:truck_map/repositories/driver_position_repository.dart';
 import 'package:truck_map/repositories/incident_repository.dart';
 import 'package:truck_map/repositories/itinerary_data_source/mock_itinerary_data_source.dart';
 import 'package:truck_map/repositories/itinerary_repository.dart';
@@ -37,6 +38,8 @@ void main() {
     );
     final deliveryRepository = DeliveryRepository();
     final incidentRepository = IncidentRepository(client: httpClient);
+    final driverPositionRepository =
+        DriverPositionRepository(client: httpClient);
 
     await tester.pumpWidget(TruckMap(
       authService: authService,
@@ -44,6 +47,7 @@ void main() {
       itineraryRepository: itineraryRepository,
       deliveryRepository: deliveryRepository,
       incidentRepository: incidentRepository,
+      driverPositionRepository: driverPositionRepository,
     ));
 
     // Allow the AuthBloc to process the authStateChanges stream and

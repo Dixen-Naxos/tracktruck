@@ -1,16 +1,24 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:truck_map/repositories/driver_position_repository.dart';
 
 part 'location_event.dart';
 part 'location_state.dart';
 
 class LocationBloc extends Bloc<LocationEvent, LocationState> {
+  final DriverPositionRepository _driverPositionRepository;
   StreamSubscription<Position>? _positionSubscription;
+  Timer? _sendPositionTimer;
 
-  LocationBloc() : super(const LocationState()) {
+  static const _sendInterval = Duration(minutes: 1);
+
+  LocationBloc({required DriverPositionRepository driverPositionRepository})
+      : _driverPositionRepository = driverPositionRepository,
+        super(const LocationState()) {
     on<StartTracking>(_onStartTracking);
     on<StopTracking>(_onStopTracking);
     on<_PositionUpdated>(_onPositionUpdated);
@@ -54,10 +62,12 @@ class LocationBloc extends Bloc<LocationEvent, LocationState> {
     // Get initial position
     try {
       final position = await Geolocator.getCurrentPosition();
+      final latLng = LatLng(position.latitude, position.longitude);
       emit(state.copyWith(
         status: LocationStatus.tracking,
-        position: LatLng(position.latitude, position.longitude),
+        position: latLng,
       ));
+      _sendPositionToApi(latLng);
     } catch (e) {
       emit(state.copyWith(
         status: LocationStatus.error,
@@ -78,6 +88,14 @@ class LocationBloc extends Bloc<LocationEvent, LocationState> {
         LatLng(position.latitude, position.longitude),
       )),
     );
+
+    // Send position to API every minute
+    _sendPositionTimer?.cancel();
+    _sendPositionTimer = Timer.periodic(_sendInterval, (_) {
+      if (state.position != null) {
+        _sendPositionToApi(state.position!);
+      }
+    });
   }
 
   void _onStopTracking(
@@ -86,6 +104,8 @@ class LocationBloc extends Bloc<LocationEvent, LocationState> {
   ) {
     _positionSubscription?.cancel();
     _positionSubscription = null;
+    _sendPositionTimer?.cancel();
+    _sendPositionTimer = null;
   }
 
   void _onPositionUpdated(
@@ -98,10 +118,18 @@ class LocationBloc extends Bloc<LocationEvent, LocationState> {
     ));
   }
 
+  void _sendPositionToApi(LatLng position) {
+    _driverPositionRepository.sendPosition(position).catchError((e) {
+      debugPrint('[LocationBloc] Failed to send position: $e');
+    });
+  }
+
   @override
   Future<void> close() {
     _positionSubscription?.cancel();
     _positionSubscription = null;
+    _sendPositionTimer?.cancel();
+    _sendPositionTimer = null;
     return super.close();
   }
 }

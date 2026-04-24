@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:truck_map/blocs/auth_bloc/auth_bloc.dart';
 import 'package:truck_map/blocs/delivery_bloc/delivery_bloc.dart';
+import 'package:truck_map/blocs/location_bloc/location_bloc.dart';
 import 'package:truck_map/models/delivery.dart';
 import 'package:truck_map/screens/deliveries/deliveries_screen.dart';
 
@@ -38,6 +39,7 @@ class _HomeShellState extends State<HomeShell> {
   void initState() {
     super.initState();
     context.read<DeliveryBloc>().add(LoadDeliveries());
+    context.read<LocationBloc>().add(StartTracking());
   }
 
   @override
