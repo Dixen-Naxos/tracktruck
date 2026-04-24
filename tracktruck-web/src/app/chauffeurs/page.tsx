@@ -12,6 +12,8 @@ import { ApiDrivers } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 import type { Driver, DriverStatus, DriverUser } from "@/lib/types";
 import {useEffect} from "react";
+import {sendPasswordResetEmail} from "firebase/auth";
+import {auth} from "@/lib/firebase";
 
 type ViewMode = "grid" | "list";
 type StatusFilter = "all" | DriverStatus;
@@ -65,6 +67,7 @@ useEffect(() => {
 
   const handleCreate = async (input: DriverUser) => {
     const created = await ApiDrivers.createUser(input);
+    sendPasswordResetEmail(auth, created.email);
     setDrivers((prev) => [created, ...prev]);
     setDrawerOpen(false);
     toast(`${created.firstName} ${created.lastName} créé·e`, "success");
