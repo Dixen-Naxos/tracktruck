@@ -18,6 +18,8 @@ import { itinerariesRoute } from "./routes/itineraries.js";
 import { deliveriesRoute } from "./routes/deliveries.js";
 import { seederRoute } from "./routes/seeder.js";
 import { startSytadinPolling } from "./features/incidents/fetchIncidents.js";
+import { cleanupOldVideos } from "./features/dashcam-videos/cleanupVideos.js";
+import { schedule } from "node-cron";
 
 const app = new Hono<AuthEnv>()
   .use("*", cors())
@@ -64,6 +66,11 @@ async function main() {
 
   startSytadinPolling().catch((error) => {
     console.error("Error starting Sytadin polling:", error);
+  });
+
+  // Every day at 03:00
+  schedule("0 3 * * *", () => {
+    cleanupOldVideos().catch((err) => console.error("[cleanup] Cron error:", err));
   });
 
   await serve(
