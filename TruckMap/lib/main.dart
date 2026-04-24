@@ -5,10 +5,12 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:truck_map/blocs/auth_bloc/auth_bloc.dart';
 import 'package:truck_map/blocs/delivery_bloc/delivery_bloc.dart';
+import 'package:truck_map/blocs/incident_bloc/incident_bloc.dart';
 import 'package:truck_map/blocs/itinerary_bloc/itinerary_bloc.dart';
 import 'package:truck_map/blocs/location_bloc/location_bloc.dart';
 import 'package:truck_map/firebase_options.dart';
 import 'package:truck_map/repositories/delivery_repository.dart';
+import 'package:truck_map/repositories/incident_repository.dart';
 import 'package:truck_map/repositories/itinerary_data_source/remote_itinerary_data_source.dart';
 import 'package:truck_map/repositories/itinerary_repository.dart';
 import 'package:truck_map/screens/auth/auth_gate.dart';
@@ -27,12 +29,14 @@ void main() async {
     dataSource: RemoteItineraryDataSource(client: httpClient),
   );
   final deliveryRepository = DeliveryRepository(client: httpClient);
+  final incidentRepository = IncidentRepository(client: httpClient);
 
   runApp(TruckMap(
     authService: authService,
     httpClient: httpClient,
     itineraryRepository: itineraryRepository,
     deliveryRepository: deliveryRepository,
+    incidentRepository: incidentRepository,
   ));
 }
 
@@ -41,6 +45,7 @@ class TruckMap extends StatelessWidget {
   final AuthHttpClient httpClient;
   final ItineraryRepository itineraryRepository;
   final DeliveryRepository deliveryRepository;
+  final IncidentRepository incidentRepository;
 
   const TruckMap({
     super.key,
@@ -48,6 +53,7 @@ class TruckMap extends StatelessWidget {
     required this.httpClient,
     required this.itineraryRepository,
     required this.deliveryRepository,
+    required this.incidentRepository,
   });
 
   @override
@@ -57,6 +63,7 @@ class TruckMap extends StatelessWidget {
         RepositoryProvider.value(value: authService),
         RepositoryProvider.value(value: httpClient),
         RepositoryProvider.value(value: itineraryRepository),
+        RepositoryProvider.value(value: incidentRepository),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -70,6 +77,9 @@ class TruckMap extends StatelessWidget {
           ),
           BlocProvider(
             create: (_) => DeliveryBloc(repository: deliveryRepository),
+          ),
+          BlocProvider(
+            create: (_) => IncidentBloc(repository: incidentRepository),
           ),
           BlocProvider(
             create: (_) => LocationBloc()..add(StartTracking()),
