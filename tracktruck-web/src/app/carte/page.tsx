@@ -5,6 +5,7 @@ import { Btn, Card, KeyStat, PageHeader, SearchInput, Segment, StatusDot } from 
 import { Icon } from "@/components/icons";
 import Map from "@/components/carte/Map";
 import { TruckDetailDrawer } from "@/components/carte/TruckDetailDrawer";
+import { NewDeliveryDrawer } from "@/components/carte/NewDeliveryDrawer";
 import {
   STATUS_COLORS,
   STATUS_LABELS,
@@ -35,6 +36,16 @@ export default function CartePage() {
   const [movingOnly, setMovingOnly] = React.useState(false);
   const [mapClickPosition, setMapClickPosition] = React.useState<LatLng | null>(null);
   const [mapClickVersion, setMapClickVersion] = React.useState(0);
+  const [newDeliveryOpen, setNewDeliveryOpen] = React.useState(false);
+  const [newDeliveryClickPosition, setNewDeliveryClickPosition] =
+    React.useState<LatLng | null>(null);
+  const [newDeliveryClickVersion, setNewDeliveryClickVersion] = React.useState(0);
+  const [newDeliveryPendingStops, setNewDeliveryPendingStops] = React.useState<
+    Array<{ position: LatLng; name: string }>
+  >([]);
+  const [newDeliveryDeparture, setNewDeliveryDeparture] =
+    React.useState<LatLng | null>(null);
+  const [reloadKey, setReloadKey] = React.useState(0);
 
   // Load trucks from the backend. Re-poll every 10s to keep positions fresh.
   React.useEffect(() => {
@@ -65,7 +76,7 @@ export default function CartePage() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [reloadKey]);
 
   const filteredTrucks = React.useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -89,7 +100,7 @@ export default function CartePage() {
 
   const selectedTruck =
     filteredTrucks.find((t) => t.id === selectedId) ?? null;
-  const detailFocus = drawerOpen && !!selectedTruck;
+  const detailFocus = (drawerOpen && !!selectedTruck) || newDeliveryOpen;
 
   React.useEffect(() => {
     if (!selectedId) return;
@@ -109,13 +120,35 @@ export default function CartePage() {
 
   const handleMapClickAddStop = React.useCallback(
     (position: LatLng) => {
+      // When the "new delivery" drawer is open, clicks feed that form.
+      if (newDeliveryOpen) {
+        setNewDeliveryClickPosition(position);
+        setNewDeliveryClickVersion((v) => v + 1);
+        return;
+      }
       if (!selectedId) return;
       setDrawerOpen(true);
       setMapClickPosition(position);
       setMapClickVersion((v) => v + 1);
     },
-    [selectedId],
+    [newDeliveryOpen, selectedId],
   );
+
+  const openNewDelivery = React.useCallback(() => {
+    // Close the truck detail drawer first so the split layout swaps smoothly.
+    setDrawerOpen(false);
+    setNewDeliveryOpen(true);
+  }, []);
+
+  const closeNewDelivery = React.useCallback(() => {
+    setNewDeliveryOpen(false);
+    setNewDeliveryPendingStops([]);
+    setNewDeliveryDeparture(null);
+  }, []);
+
+  const handleNewDeliveryCreated = React.useCallback(() => {
+    setReloadKey((k) => k + 1);
+  }, []);
 
   const resetFilters = React.useCallback(() => {
     setStatusFilter("all");
@@ -238,15 +271,25 @@ export default function CartePage() {
   return (
     <div className={`tt-carte-page ${detailFocus ? "tt-carte-page--focus" : ""}`}>
       <PageHeader title="Carte temps réel" subtitle="Position en direct des camions">
-        <Btn
-          className="tt-carte-filter-toggle"
-          variant="secondary"
-          size="lg"
-          icon={<Icon.filter size={14}/>}
-          onClick={() => setFiltersOpen((v) => !v)}
-        >
-          Filtres {activeFilters > 0 ? `(${activeFilters})` : ""}
-        </Btn>
+        <div className="flex items-center gap-2">
+          <Btn
+            className="tt-carte-filter-toggle"
+            variant="secondary"
+            size="lg"
+            icon={<Icon.filter size={14}/>}
+            onClick={() => setFiltersOpen((v) => !v)}
+          >
+            Filtres {activeFilters > 0 ? `(${activeFilters})` : ""}
+          </Btn>
+          <Btn
+            variant="primary"
+            size="lg"
+            icon={<Icon.plus size={14}/>}
+            onClick={openNewDelivery}
+          >
+            Nouveau trajet
+          </Btn>
+        </div>
       </PageHeader>
 
       {filtersOpen ? (
@@ -322,6 +365,8 @@ export default function CartePage() {
               onSelectTruck={handleSelect}
               onOpenDetails={handleOpenDetails}
               onMapClick={handleMapClickAddStop}
+              pendingStops={newDeliveryOpen ? newDeliveryPendingStops : null}
+              pendingOrigin={newDeliveryOpen ? newDeliveryDeparture : null}
             />
           </div>
         </Card>
@@ -415,7 +460,7 @@ export default function CartePage() {
 
       <TruckDetailDrawer
         truck={selectedTruck}
-        open={drawerOpen}
+        open={drawerOpen && !newDeliveryOpen}
         layout="split"
         onClose={() => setDrawerOpen(false)}
         onAddStop={handleAddStop}
@@ -424,6 +469,15 @@ export default function CartePage() {
         onReorderStop={handleReorderStop}
         mapClickPosition={mapClickPosition}
         mapClickVersion={mapClickVersion}
+      />
+      <NewDeliveryDrawer
+        open={newDeliveryOpen}
+        onClose={closeNewDelivery}
+        mapClickPosition={newDeliveryClickPosition}
+        mapClickVersion={newDeliveryClickVersion}
+        onCreated={handleNewDeliveryCreated}
+        onStopsChange={setNewDeliveryPendingStops}
+        onDepartureChange={setNewDeliveryDeparture}
       />
     </div>
   );

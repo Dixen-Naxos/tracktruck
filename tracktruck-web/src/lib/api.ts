@@ -139,6 +139,54 @@ export const ApiTrucks = {
   get:  (id: string) => request<ApiTruck>("GET", `/trucks/${id}`),
 };
 
+// ─── ApiWarehouses ────────────────────────────────────────────────────────────
+
+export type ApiWarehouse = {
+  _id: string;
+  name: string;
+  address: string;
+  location: ApiLatLng;
+};
+
+export const ApiWarehouses = {
+  list: () => request<ApiWarehouse[]>("GET", "/warehouses"),
+};
+
+// ─── ApiDeliveries ────────────────────────────────────────────────────────────
+
+export type ApiCreateDeliveryStop = {
+  name: string;
+  address?: string;
+  location: ApiLatLng;
+};
+
+export type ApiCreateDeliveryInput = {
+  departureWarehouseId: string;
+  storeIds?: string[];
+  stops?: ApiCreateDeliveryStop[];
+  plannedStartAt: string;
+  truckId?: string;
+  driverId?: string;
+};
+
+export type ApiDelivery = {
+  _id: string;
+  departureWarehouseId: string;
+  storeIds: string[];
+  totalDistanceKm: number;
+  totalDurationSeconds: number;
+  plannedStartAt: string;
+  actualStartAt?: string;
+  status: "planned" | "started" | "done";
+  truckId?: string;
+  driverId?: string;
+};
+
+export const ApiDeliveries = {
+  create: (input: ApiCreateDeliveryInput) =>
+    request<ApiDelivery>("POST", "/deliveries", input),
+};
+
 // ─── ApiOrders ────────────────────────────────────────────────────────────────
 
 // export const ApiOrders = {

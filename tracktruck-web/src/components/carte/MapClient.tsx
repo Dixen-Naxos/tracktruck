@@ -33,6 +33,10 @@ interface Props {
   onSelectTruck: (id: string | null) => void;
   onOpenDetails: (id: string) => void;
   onMapClick?: (position: LatLng) => void;
+  /** Preview points for a delivery currently being built. */
+  pendingStops?: Array<{ position: LatLng; name: string }> | null;
+  /** Departure warehouse for the delivery being built. */
+  pendingOrigin?: LatLng | null;
 }
 
 function MapClickHandler({ onMapClick }: { onMapClick?: (position: LatLng) => void }) {
@@ -101,6 +105,8 @@ export default function MapClient({
   onSelectTruck,
   onOpenDetails,
   onMapClick,
+  pendingStops,
+  pendingOrigin,
 }: Props) {
   const selectedTruck =
     trucks.find((t) => t.id === selectedTruckId) ?? null;
@@ -207,6 +213,40 @@ export default function MapClient({
           </Marker>
         );
       })}
+
+      {/* Pending delivery preview (while the "new trajet" drawer is open) */}
+      {pendingOrigin ? (
+        <Marker
+          position={pendingOrigin}
+          icon={buildStopIcon("warehouse", "Départ")}
+        />
+      ) : null}
+      {pendingStops && pendingStops.length > 0 ? (
+        <>
+          {pendingStops.map((s, i) => (
+            <Marker
+              key={`pending-${i}`}
+              position={s.position}
+              icon={buildStopIcon("delivery", s.name)}
+            />
+          ))}
+          {pendingOrigin && pendingStops.length >= 1 ? (
+            <Polyline
+              positions={[
+                pendingOrigin,
+                ...pendingStops.map((s) => s.position),
+                pendingOrigin,
+              ]}
+              pathOptions={{
+                color: "var(--accent)",
+                weight: 4,
+                opacity: 0.55,
+                dashArray: "6 8",
+              }}
+            />
+          ) : null}
+        </>
+      ) : null}
 
       <FocusOnSelected
         truck={selectedTruck}
