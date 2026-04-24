@@ -16,7 +16,7 @@ const createDeliverySchema = z.object({
 });
 
 export const deliveriesRoute = new Hono<AuthEnv>()
-  .use(requireAuth)
+  .use("*", requireAuth)
   .post(
     "/",
     describeRoute({
@@ -77,7 +77,6 @@ export const deliveriesRoute = new Hono<AuthEnv>()
         200: { description: "List of deliveries" },
       },
     }),
-    requireRole("admin"),
     async (c) => {
       const user = c.get("user");
       if (user.role === "driver") {
