@@ -98,6 +98,19 @@ export type ViewKey =
   | "dashcam"
   | "signalements";
 
+export interface Order {
+  id: string;
+  nomClient: string;
+  produit: string;
+  quantite: number;
+  dateDebutCommande: string;
+  dateLivraisonVoulue: string;
+  rue: string;
+  ville: string;
+  codePostal: string;
+  pays: string;
+}
+
 export type IncidentType = "external" | "delivery_delayed" | "vehicle_breakdown";
 
 export interface Incident {

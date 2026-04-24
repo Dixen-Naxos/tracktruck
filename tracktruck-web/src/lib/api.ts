@@ -1,7 +1,7 @@
 // API client stubs. Replace with real fetch calls; keep the function signatures stable
 // so the UI doesn't need to change.
 
-import type { DashcamVideo, Driver, DriverUser, Incident, IncidentType } from "./types";
+import type { DashcamVideo, Driver, DriverUser, Incident, IncidentType, Order } from "./types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API ?? "";
 
@@ -88,13 +88,37 @@ export const ApiDrivers = {
 
 // ─── ApiOrders ────────────────────────────────────────────────────────────────
 
-// export const ApiOrders = {
-//   list:   ()                                         => request<Order[]>("GET",  "/api/orders"),
-//   get:    (id: string)                               => request<Order> ("GET",  `/api/orders/${id}`),
-//   create: (input: Omit<Order, "id">)                 => request<Order> ("POST", "/api/orders", input),
-//   update: (id: string, patch: Partial<Order>)        => request<Order> ("PATCH",`/api/orders/${id}`, patch),
-//   cancel: (id: string, reason: string)               => request<void>  ("POST", `/api/orders/${id}/cancel`, { reason }),
-// };
+type ApiOrder = {
+  _id: string;
+  nom_client: string;
+  produit: string;
+  quantite: number;
+  date_debut_commande: string;
+  date_livraison_voulue: string;
+  rue: string;
+  ville: string;
+  code_postal: string;
+  pays: string;
+};
+
+function toOrder(r: ApiOrder): Order {
+  return {
+    id:                  r._id,
+    nomClient:           r.nom_client,
+    produit:             r.produit,
+    quantite:            r.quantite,
+    dateDebutCommande:   r.date_debut_commande,
+    dateLivraisonVoulue: r.date_livraison_voulue,
+    rue:                 r.rue,
+    ville:               r.ville,
+    codePostal:          r.code_postal,
+    pays:                r.pays,
+  };
+}
+
+export const ApiOrders = {
+  list: async (): Promise<Order[]> => (await request<ApiOrder[]>("GET", "/orders")).map(toOrder),
+};
 
 // ─── ApiDashcam ───────────────────────────────────────────────────────────────
 
