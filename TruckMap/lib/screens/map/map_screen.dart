@@ -6,6 +6,11 @@ import 'package:latlong2/latlong.dart';
 import 'package:truck_map/blocs/incident_bloc/incident_bloc.dart';
 import 'package:truck_map/blocs/itinerary_bloc/itinerary_bloc.dart';
 import 'package:truck_map/blocs/location_bloc/location_bloc.dart';
+import 'package:truck_map/widgets/itinerary_polyline.dart';
+import 'package:truck_map/widgets/road_sign.dart';
+import 'package:truck_map/widgets/user_location_marker.dart';
+import 'package:truck_map/widgets/utility_point.dart';
+import 'package:truck_map/widgets/waypoint_markers.dart';
 import 'package:truck_map/models/incident.dart';
 import 'package:truck_map/models/itinerary.dart';
 import 'package:truck_map/widgets/user_location_marker.dart';
@@ -315,11 +320,17 @@ class _IncidentSheetState extends State<_IncidentSheet> {
                         : const Icon(Icons.warning_amber_rounded),
                     label: Text(isLoading ? 'Envoi...' : 'Signaler'),
                   ),
-                );
-              },
-            ),
-          ],
-        ),
+                  ItineraryPolyline(routePoints: itinerary.routePoints),
+                  WaypointMarkers(waypoints: itinerary.waypoints),
+                  UtilityPointMarkers(points: itinerary.utilityPoints),
+                  RoadSignMarkers(signs: itinerary.roadSigns),
+                  if (locationState.position != null)
+                    UserLocationMarker(position: locationState.position!),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }

@@ -1,15 +1,24 @@
 import 'package:equatable/equatable.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:truck_map/models/waypoint.dart';
+import 'package:truck_map/widgets/road_sign.dart';
+import 'package:truck_map/widgets/utility_point.dart';
 
 class ItineraryStop extends Equatable {
   final String id;
   final String name;
-  final String address;
-  final LatLng location;
+  final List<Waypoint> waypoints;
+  final List<LatLng> routePoints;
+  final List<UtilityPoint> utilityPoints;
+  final List<RoadSign> roadSigns;
 
   const ItineraryStop({
     required this.id,
     required this.name,
+    required this.waypoints,
+    required this.routePoints,
+    this.utilityPoints = const [],
+    this.roadSigns = const [],
     required this.address,
     required this.location,
   });
@@ -63,5 +72,6 @@ class Itinerary extends Equatable {
 
   @override
   List<Object?> get props =>
+      [id, name, waypoints, routePoints, utilityPoints, roadSigns];
       [orderedStops, totalDistanceKilometers, totalDurationSeconds];
 }
