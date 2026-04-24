@@ -19,15 +19,30 @@ const deliveryIdParamSchema = z.object({
   deliveryId: objectIdSchema,
 });
 
-const createDeliverySchema = z.object({
-  departureWarehouseId: objectIdSchema,
-  storeIds: z.array(objectIdSchema).min(1),
-  plannedStartAt: z.iso.datetime().transform((s) => new Date(s)),
-  totalDistanceKm: z.number().nonnegative(),
-  totalDurationSeconds: z.number().nonnegative().int(),
-  roadSignIds: z.array(z.string()).default([]),
-  wasRerouted: z.boolean().default(false),
-});
+const createDeliverySchema = z
+  .object({
+    departureWarehouseId: objectIdSchema,
+    plannedStartAt: z.iso.datetime().transform((s) => new Date(s)),
+    // Paste the itinerary object returned by POST /itineraries/compute
+    itinerary: z.object({
+      orderedStopIds: z.array(objectIdSchema).min(1),
+      totalDistanceKilometers: z.number().nonnegative(),
+      totalDurationSeconds: z.number().nonnegative().int(),
+      blockingSigns: z
+        .array(z.object({ osmId: z.string() }).passthrough())
+        .default([]),
+      wasRerouted: z.boolean().default(false),
+    }),
+  })
+  .transform((d) => ({
+    departureWarehouseId: d.departureWarehouseId,
+    plannedStartAt: d.plannedStartAt,
+    storeIds: d.itinerary.orderedStopIds,
+    totalDistanceKm: d.itinerary.totalDistanceKilometers,
+    totalDurationSeconds: d.itinerary.totalDurationSeconds,
+    roadSignIds: d.itinerary.blockingSigns.map((s) => s.osmId),
+    wasRerouted: d.itinerary.wasRerouted,
+  }));
 
 export const deliveriesRoute = new Hono<AuthEnv>()
   .use("*", requireAuth)
@@ -44,12 +59,14 @@ export const deliveriesRoute = new Hono<AuthEnv>()
           "application/json": {
             example: {
               departureWarehouseId: "684a1f2e3c4b5d6e7f8a9b0c",
-              storeIds: ["684a1f2e3c4b5d6e7f8a9b0d", "684a1f2e3c4b5d6e7f8a9b0e"],
               plannedStartAt: "2026-04-25T08:00:00.000Z",
-              totalDistanceKm: 18.3,
-              totalDurationSeconds: 3240,
-              roadSignIds: [],
-              wasRerouted: false,
+              itinerary: {
+                orderedStopIds: ["684a1f2e3c4b5d6e7f8a9b0d", "684a1f2e3c4b5d6e7f8a9b0e"],
+                totalDistanceKilometers: 18.3,
+                totalDurationSeconds: 3240,
+                blockingSigns: [],
+                wasRerouted: false,
+              },
             },
           },
         },
