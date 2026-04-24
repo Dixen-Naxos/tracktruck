@@ -108,4 +108,6 @@ export interface DashcamVideo {
   driver: { id: string; firstName: string; lastName: string } | null;
   truckId?: string;
   deliveryId?: string;
+  retained: boolean;
+  retentionNote?: string;
 }

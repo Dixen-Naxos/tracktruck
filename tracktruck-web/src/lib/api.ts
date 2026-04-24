@@ -198,3 +198,11 @@ export async function getDashcamVideoUrl(videoId: string): Promise<string> {
   const { downloadUrl } = await request<{ downloadUrl: string }>("GET", `/videos/${videoId}/download-url`);
   return downloadUrl;
 }
+
+export function retainDashcamVideo(videoId: string, note: string): Promise<unknown> {
+  return request("PATCH", `/videos/${videoId}/retain`, { note });
+}
+
+export function unretainDashcamVideo(videoId: string): Promise<unknown> {
+  return request("DELETE", `/videos/${videoId}/retain`);
+}
