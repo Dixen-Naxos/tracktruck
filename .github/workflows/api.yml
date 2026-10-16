@@ -39,7 +39,6 @@ jobs:
           host: ${{ secrets.SERVER_HOSTNAME }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          password: ${{ secrets.SERVER_PWD }}  # fallback until SERVER_SSH_KEY is set; remove after
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd tracktruck/
